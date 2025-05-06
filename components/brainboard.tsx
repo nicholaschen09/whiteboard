@@ -1163,15 +1163,6 @@ export function Brainboard({ boardId }: BrainboardProps) {
                 zIndex: 10,
               }}
             >
-              <div
-                className="w-4 h-4"
-                style={{
-                  backgroundColor: user.color,
-                  clipPath: "polygon(0% 0%, 50% 100%, 100% 0%)",
-                  transform: "translate(-50%, -50%) rotate(-45deg)",
-                  position: "absolute",
-                }}
-              />
               {user.id !== 1 && (
                 <div className="absolute -mt-6 -ml-4 whitespace-nowrap bg-black bg-opacity-75 text-white text-xs px-1 py-0.5 rounded">
                   {user.name}

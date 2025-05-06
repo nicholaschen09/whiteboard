@@ -501,14 +501,6 @@ export function Whiteboard() {
               transition: user.id === 1 ? "none" : "all 0.5s ease-out",
             }}
           >
-            <div
-              className="w-4 h-4 -ml-2 -mt-2"
-              style={{
-                backgroundColor: user.color,
-                clipPath: "polygon(0% 0%, 50% 100%, 100% 0%)",
-                transform: "rotate(-45deg)",
-              }}
-            />
             {user.id !== 1 && (
               <div className="absolute -mt-6 -ml-4 whitespace-nowrap bg-black bg-opacity-75 text-white text-xs px-1 py-0.5 rounded">
                 {user.name}
