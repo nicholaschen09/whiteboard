@@ -69,41 +69,14 @@ const createMockWebSocket = () => {
         }, 500)
       }
     },
-    removeEventListener: () => {},
-    close: () => {},
+    removeEventListener: () => { },
+    close: () => { },
   }
 }
 
-// Mock users for demonstration
-const mockUsers = [
-  { id: 1, name: "You", avatar: "/placeholder.svg?height=40&width=40", color: "#FF5733", x: 100, y: 150, online: true },
-  {
-    id: 2,
-    name: "Alex",
-    avatar: "/placeholder.svg?height=40&width=40",
-    color: "#33FF57",
-    x: 300,
-    y: 200,
-    online: true,
-  },
-  {
-    id: 3,
-    name: "Jamie",
-    avatar: "/placeholder.svg?height=40&width=40",
-    color: "#3357FF",
-    x: 500,
-    y: 250,
-    online: true,
-  },
-  {
-    id: 4,
-    name: "Taylor",
-    avatar: "/placeholder.svg?height=40&width=40",
-    color: "#FF33A8",
-    x: 400,
-    y: 300,
-    online: false,
-  },
+// Initialize with just the current user
+const initialUsers = [
+  { id: 1, name: "You", avatar: "/placeholder.svg?height=40&width=40", color: "#FF5733", x: 100, y: 150, online: true }
 ]
 
 type Tool = "select" | "pen" | "rectangle" | "circle" | "text" | "sticker" | "image" | "arrow" | "note" | "eraser"
@@ -137,7 +110,7 @@ export function Brainboard({ boardId }: BrainboardProps) {
   const [history, setHistory] = useState<DrawingElement[][]>([])
   const [historyIndex, setHistoryIndex] = useState(-1)
   const [currentElement, setCurrentElement] = useState<DrawingElement | null>(null)
-  const [users, setUsers] = useState(mockUsers)
+  const [users, setUsers] = useState(initialUsers)
   const [showUsers, setShowUsers] = useState(false)
   const [showShareDialog, setShowShareDialog] = useState(false)
   const [showStickers, setShowStickers] = useState(false)
