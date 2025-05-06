@@ -1,6 +1,6 @@
-# Brainboard
+# whiteboard
 
-Brainboard is a collaborative whiteboard application that enables real-time brainstorming and ideation for teams. It provides a digital canvas where multiple users can draw, add text, share images, and collaborate simultaneously.
+Whiteboard is a collaborative whiteboard application that enables real-time brainstorming and ideation for teams. It provides a digital canvas where multiple users can draw, add text, share images, and collaborate simultaneously.
 
 ## Features
 
