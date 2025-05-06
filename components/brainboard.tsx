@@ -1,0 +1,1217 @@
+"use client"
+
+import type React from "react"
+
+import { useEffect, useRef, useState } from "react"
+import { Button } from "@/components/ui/button"
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip"
+import {
+  Circle,
+  MousePointer,
+  Pencil,
+  Square,
+  Trash2,
+  Type,
+  Download,
+  Undo,
+  Redo,
+  Users,
+  Share2,
+  ImageIcon,
+  Sticker,
+  StickyNote,
+  ArrowUpRight,
+  Eraser,
+  Layers,
+  Settings,
+} from "lucide-react"
+import { ColorPicker } from "./color-picker"
+import { UserPresence } from "./user-presence"
+import { ShareDialog } from "./share-dialog"
+import { StickersPanel } from "./stickers-panel"
+import { ImageUploader } from "./image-uploader"
+import { cn } from "@/lib/utils"
+import { useToast } from "@/hooks/use-toast"
+import { Separator } from "@/components/ui/separator"
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
+
+// Mock WebSocket connection
+const createMockWebSocket = () => {
+  const listeners = {
+    message: [] as ((data: any) => void)[],
+    open: [] as (() => void)[],
+  }
+
+  return {
+    send: (data: string) => {
+      // Simulate broadcasting to other users after a delay
+      setTimeout(() => {
+        const parsedData = JSON.parse(data)
+        if (parsedData.type === "draw") {
+          listeners.message.forEach((listener) =>
+            listener({
+              data: JSON.stringify({
+                ...parsedData,
+                userId: Math.floor(Math.random() * 3) + 2, // Assign to a random user that's not the current user
+              }),
+            }),
+          )
+        }
+      }, 300)
+    },
+    addEventListener: (event: string, callback: any) => {
+      if (event === "message") listeners.message.push(callback)
+      if (event === "open") {
+        listeners.open.push(callback)
+        // Simulate connection open
+        setTimeout(() => {
+          callback()
+        }, 500)
+      }
+    },
+    removeEventListener: () => {},
+    close: () => {},
+  }
+}
+
+// Mock users for demonstration
+const mockUsers = [
+  { id: 1, name: "You", avatar: "/placeholder.svg?height=40&width=40", color: "#FF5733", x: 100, y: 150, online: true },
+  {
+    id: 2,
+    name: "Alex",
+    avatar: "/placeholder.svg?height=40&width=40",
+    color: "#33FF57",
+    x: 300,
+    y: 200,
+    online: true,
+  },
+  {
+    id: 3,
+    name: "Jamie",
+    avatar: "/placeholder.svg?height=40&width=40",
+    color: "#3357FF",
+    x: 500,
+    y: 250,
+    online: true,
+  },
+  {
+    id: 4,
+    name: "Taylor",
+    avatar: "/placeholder.svg?height=40&width=40",
+    color: "#FF33A8",
+    x: 400,
+    y: 300,
+    online: false,
+  },
+]
+
+type Tool = "select" | "pen" | "rectangle" | "circle" | "text" | "sticker" | "image" | "arrow" | "note" | "eraser"
+type DrawingElement = {
+  id: string
+  type: Tool
+  points?: { x: number; y: number }[]
+  x?: number
+  y?: number
+  width?: number
+  height?: number
+  text?: string
+  color: string
+  userId: number
+  stickerType?: string
+  imageUrl?: string
+  lineWidth?: number
+}
+
+interface BrainboardProps {
+  boardId?: string
+}
+
+export function Brainboard({ boardId }: BrainboardProps) {
+  const canvasRef = useRef<HTMLCanvasElement>(null)
+  const [context, setContext] = useState<CanvasRenderingContext2D | null>(null)
+  const [isDrawing, setIsDrawing] = useState(false)
+  const [currentTool, setCurrentTool] = useState<Tool>("pen")
+  const [currentColor, setCurrentColor] = useState("#4f46e5") // Indigo color
+  const [elements, setElements] = useState<DrawingElement[]>([])
+  const [history, setHistory] = useState<DrawingElement[][]>([])
+  const [historyIndex, setHistoryIndex] = useState(-1)
+  const [currentElement, setCurrentElement] = useState<DrawingElement | null>(null)
+  const [users, setUsers] = useState(mockUsers)
+  const [showUsers, setShowUsers] = useState(false)
+  const [showShareDialog, setShowShareDialog] = useState(false)
+  const [showStickers, setShowStickers] = useState(false)
+  const [showImageUploader, setShowImageUploader] = useState(false)
+  const [lineWidth, setLineWidth] = useState(2)
+  const [socket, setSocket] = useState<any>(null)
+  const [isConnected, setIsConnected] = useState(false)
+  const { toast } = useToast()
+  const [currentPosition, setCurrentPosition] = useState<{ x: number; y: number } | null>(null)
+  const [activeTab, setActiveTab] = useState<string>("draw")
+
+  // Add this near the top of the component, after the useState declarations
+  useEffect(() => {
+    // Check if there's a board ID in the URL (for joining via share link)
+    const checkForBoardId = () => {
+      if (boardId) {
+        // We found a board ID in the URL, so we're joining an existing board
+        toast({
+          title: "Joining Brainboard",
+          description: `Connecting to board ${boardId}...`,
+        })
+
+        // In a real app, we would fetch the board data from the server
+        // For now, we'll just simulate joining
+        setTimeout(() => {
+          toast({
+            title: "Connected!",
+            description: "You've joined the collaborative whiteboard",
+          })
+        }, 1500)
+
+        return boardId
+      }
+
+      const path = window.location.pathname
+      const boardIdMatch = path.match(/\/board\/([a-zA-Z0-9]+)/)
+
+      if (boardIdMatch && boardIdMatch[1]) {
+        const urlBoardId = boardIdMatch[1]
+
+        // We found a board ID in the URL, so we're joining an existing board
+        toast({
+          title: "Joining Brainboard",
+          description: `Connecting to board ${urlBoardId}...`,
+        })
+
+        // In a real app, we would fetch the board data from the server
+        // For now, we'll just simulate joining
+        setTimeout(() => {
+          toast({
+            title: "Connected!",
+            description: "You've joined the collaborative whiteboard",
+          })
+        }, 1500)
+
+        return urlBoardId
+      }
+
+      // No board ID in URL, check localStorage for previously created board
+      return localStorage.getItem("brainboard-id") || null
+    }
+
+    const detectedBoardId = checkForBoardId()
+    if (detectedBoardId) {
+      console.log("Connected to board:", detectedBoardId)
+      // In a real app, we would use this ID to connect to the specific board
+    }
+  }, [boardId])
+
+  // Initialize WebSocket connection
+  useEffect(() => {
+    const ws = createMockWebSocket()
+
+    ws.addEventListener("open", () => {
+      setIsConnected(true)
+      toast({
+        title: "Connected to Brainboard",
+        description: "You are now collaborating in real-time",
+      })
+    })
+
+    ws.addEventListener("message", (event: any) => {
+      try {
+        const data = JSON.parse(event.data)
+        if (data.type === "draw") {
+          setElements((prev) => [...prev, data.element])
+        } else if (data.type === "userMove") {
+          setUsers((prev) => prev.map((user) => (user.id === data.userId ? { ...user, x: data.x, y: data.y } : user)))
+        }
+      } catch (e) {
+        console.error("Failed to parse WebSocket message", e)
+      }
+    })
+
+    setSocket(ws)
+
+    return () => {
+      ws.close()
+    }
+  }, [])
+
+  // Initialize canvas context
+  useEffect(() => {
+    if (canvasRef.current) {
+      const canvas = canvasRef.current
+      const ctx = canvas.getContext("2d")
+
+      // Set canvas size to match parent container
+      const resizeCanvas = () => {
+        const container = canvas.parentElement
+        if (container) {
+          canvas.width = container.clientWidth
+          canvas.height = container.clientHeight
+          drawElements()
+        }
+      }
+
+      window.addEventListener("resize", resizeCanvas)
+      resizeCanvas()
+
+      if (ctx) {
+        setContext(ctx)
+      }
+
+      return () => {
+        window.removeEventListener("resize", resizeCanvas)
+      }
+    }
+  }, [])
+
+  // Redraw all elements when they change
+  useEffect(() => {
+    drawElements()
+  }, [elements])
+
+  // Simulate other users moving around
+  useEffect(() => {
+    const interval = setInterval(() => {
+      setUsers((prevUsers) =>
+        prevUsers.map((user) => {
+          if (user.id !== 1 && user.online) {
+            // Don't move the current user
+            const newX = user.x + (Math.random() * 20 - 10)
+            const newY = user.y + (Math.random() * 20 - 10)
+
+            // Broadcast user movement
+            if (socket && isConnected) {
+              socket.send(
+                JSON.stringify({
+                  type: "userMove",
+                  userId: user.id,
+                  x: newX,
+                  y: newY,
+                }),
+              )
+            }
+
+            return {
+              ...user,
+              x: newX,
+              y: newY,
+            }
+          }
+          return user
+        }),
+      )
+    }, 2000)
+
+    return () => clearInterval(interval)
+  }, [socket, isConnected])
+
+  const drawElements = () => {
+    if (!context || !canvasRef.current) return
+
+    const canvas = canvasRef.current
+    context.clearRect(0, 0, canvas.width, canvas.height)
+
+    elements.forEach((element) => {
+      context.strokeStyle = element.color
+      context.fillStyle = element.color
+      context.lineWidth = element.lineWidth || 2
+
+      switch (element.type) {
+        case "pen":
+          if (element.points && element.points.length > 0) {
+            context.beginPath()
+            context.moveTo(element.points[0].x, element.points[0].y)
+
+            element.points.forEach((point) => {
+              context.lineTo(point.x, point.y)
+            })
+
+            context.stroke()
+          }
+          break
+
+        case "rectangle":
+          if (
+            element.x !== undefined &&
+            element.y !== undefined &&
+            element.width !== undefined &&
+            element.height !== undefined
+          ) {
+            context.beginPath()
+            context.rect(element.x, element.y, element.width, element.height)
+            context.stroke()
+          }
+          break
+
+        case "circle":
+          if (element.x !== undefined && element.y !== undefined && element.width !== undefined) {
+            context.beginPath()
+            context.arc(element.x + element.width / 2, element.y + element.width / 2, element.width / 2, 0, Math.PI * 2)
+            context.stroke()
+          }
+          break
+
+        case "text":
+          if (element.x !== undefined && element.y !== undefined && element.text) {
+            context.font = "16px Inter, sans-serif"
+            context.fillText(element.text, element.x, element.y)
+          }
+          break
+
+        case "sticker":
+          if (element.x !== undefined && element.y !== undefined && element.stickerType) {
+            context.font = "32px sans-serif"
+            context.fillText(element.stickerType, element.x, element.y)
+          }
+          break
+
+        case "image":
+          if (
+            element.x !== undefined &&
+            element.y !== undefined &&
+            element.width !== undefined &&
+            element.height !== undefined &&
+            element.imageUrl
+          ) {
+            const img = new Image()
+            img.src = element.imageUrl
+            img.crossOrigin = "anonymous"
+            img.onload = () => {
+              context.drawImage(img, element.x!, element.y!, element.width!, element.height!)
+            }
+          }
+          break
+
+        case "arrow":
+          if (element.points && element.points.length > 1) {
+            const start = element.points[0]
+            const end = element.points[element.points.length - 1]
+
+            // Draw line
+            context.beginPath()
+            context.moveTo(start.x, start.y)
+            context.lineTo(end.x, end.y)
+            context.stroke()
+
+            // Draw arrowhead
+            const angle = Math.atan2(end.y - start.y, end.x - start.x)
+            context.beginPath()
+            context.moveTo(end.x, end.y)
+            context.lineTo(end.x - 15 * Math.cos(angle - Math.PI / 6), end.y - 15 * Math.sin(angle - Math.PI / 6))
+            context.lineTo(end.x - 15 * Math.cos(angle + Math.PI / 6), end.y - 15 * Math.sin(angle + Math.PI / 6))
+            context.closePath()
+            context.fill()
+          }
+          break
+
+        case "note":
+          if (
+            element.x !== undefined &&
+            element.y !== undefined &&
+            element.width !== undefined &&
+            element.height !== undefined &&
+            element.text
+          ) {
+            // Draw sticky note background
+            context.fillStyle = element.color + "80" // Add transparency
+            context.fillRect(element.x, element.y, element.width, element.height)
+
+            // Draw text
+            context.fillStyle = "#000000"
+            context.font = "14px Inter, sans-serif"
+
+            // Wrap text
+            const words = element.text.split(" ")
+            let line = ""
+            const lineHeight = 18
+            let offsetY = 20
+
+            for (let i = 0; i < words.length; i++) {
+              const testLine = line + words[i] + " "
+              const metrics = context.measureText(testLine)
+              const testWidth = metrics.width
+
+              if (testWidth > element.width - 20 && i > 0) {
+                context.fillText(line, element.x + 10, element.y + offsetY)
+                line = words[i] + " "
+                offsetY += lineHeight
+              } else {
+                line = testLine
+              }
+            }
+
+            context.fillText(line, element.x + 10, element.y + offsetY)
+          }
+          break
+      }
+    })
+  }
+
+  // Fix the cursor position for drawing
+  // Replace the handleMouseDown function with this improved version:
+  const handleMouseDown = (e: React.MouseEvent<HTMLCanvasElement>) => {
+    if (!canvasRef.current) return
+
+    const canvas = canvasRef.current
+    const rect = canvas.getBoundingClientRect()
+
+    // Get precise cursor position relative to the canvas
+    // Account for any CSS scaling by using clientWidth/offsetWidth ratio
+    const scaleX = canvas.width / canvas.clientWidth
+    const scaleY = canvas.height / canvas.clientHeight
+
+    const x = (e.clientX - rect.left) * scaleX
+    const y = (e.clientY - rect.top) * scaleY
+
+    setIsDrawing(true)
+
+    // Update current user position to exact cursor position
+    setUsers((prevUsers) => prevUsers.map((user) => (user.id === 1 ? { ...user, x, y } : user)))
+
+    const newElement: DrawingElement = {
+      id: Date.now().toString(),
+      type: currentTool,
+      color: currentColor,
+      userId: 1, // Current user
+      lineWidth,
+    }
+
+    switch (currentTool) {
+      case "pen":
+      case "arrow":
+      case "eraser":
+        newElement.points = [{ x, y }]
+        if (currentTool === "eraser") {
+          newElement.color = "#ffffff" // White for eraser
+          newElement.lineWidth = lineWidth * 2 // Thicker for eraser
+        }
+        break
+
+      case "rectangle":
+      case "circle":
+      case "note":
+        newElement.x = x
+        newElement.y = y
+        newElement.width = 0
+        newElement.height = 0
+        if (currentTool === "note") {
+          const text = prompt("Enter note text:", "")
+          if (text) {
+            newElement.text = text
+          } else {
+            return // Cancel if no text
+          }
+        }
+        break
+
+      case "text":
+        const text = prompt("Enter text:")
+        if (text) {
+          newElement.x = x
+          newElement.y = y
+          newElement.text = text
+          addElement(newElement)
+        }
+        return
+
+      case "sticker":
+        setShowStickers(true)
+        // Store current position for later use when sticker is selected
+        setCurrentPosition({ x, y })
+        return
+
+      case "image":
+        setShowImageUploader(true)
+        // Store current position for later use when image is selected
+        setCurrentPosition({ x, y })
+        return
+
+      case "select":
+        // Handle selection (not implemented in this demo)
+        return
+    }
+
+    setCurrentElement(newElement)
+  }
+
+  // Replace the handleMouseMove function with this improved version:
+  const handleMouseMove = (e: React.MouseEvent<HTMLCanvasElement>) => {
+    if (!canvasRef.current) return
+
+    const canvas = canvasRef.current
+    const rect = canvas.getBoundingClientRect()
+
+    // Get precise cursor position with scaling
+    const scaleX = canvas.width / canvas.clientWidth
+    const scaleY = canvas.height / canvas.clientHeight
+
+    const x = (e.clientX - rect.left) * scaleX
+    const y = (e.clientY - rect.top) * scaleY
+
+    // Always update current user cursor position for accurate tracking
+    setUsers((prevUsers) => prevUsers.map((user) => (user.id === 1 ? { ...user, x, y } : user)))
+
+    // If not drawing, just update cursor position and return
+    if (!isDrawing || !currentElement) return
+
+    const updatedElement = { ...currentElement }
+
+    switch (currentTool) {
+      case "pen":
+      case "arrow":
+      case "eraser":
+        updatedElement.points = [...(updatedElement.points || []), { x, y }]
+        break
+
+      case "rectangle":
+      case "circle":
+      case "note":
+        if (updatedElement.x !== undefined && updatedElement.y !== undefined) {
+          updatedElement.width = x - updatedElement.x
+          updatedElement.height = y - updatedElement.y
+        }
+        break
+    }
+
+    setCurrentElement(updatedElement)
+
+    // Redraw everything including the current element
+    if (context) {
+      drawElements()
+
+      // Draw the current element
+      context.strokeStyle = updatedElement.color
+      context.fillStyle = updatedElement.color
+      context.lineWidth = updatedElement.lineWidth || lineWidth
+
+      switch (updatedElement.type) {
+        case "pen":
+        case "eraser":
+          if (updatedElement.points && updatedElement.points.length > 0) {
+            context.beginPath()
+            context.moveTo(updatedElement.points[0].x, updatedElement.points[0].y)
+
+            updatedElement.points.forEach((point) => {
+              context.lineTo(point.x, point.y)
+            })
+
+            context.stroke()
+          }
+          break
+
+        case "rectangle":
+          if (
+            updatedElement.x !== undefined &&
+            updatedElement.y !== undefined &&
+            updatedElement.width !== undefined &&
+            updatedElement.height !== undefined
+          ) {
+            context.beginPath()
+            context.rect(updatedElement.x, updatedElement.y, updatedElement.width, updatedElement.height)
+            context.stroke()
+          }
+          break
+
+        case "circle":
+          if (updatedElement.x !== undefined && updatedElement.y !== undefined && updatedElement.width !== undefined) {
+            context.beginPath()
+            context.arc(
+              updatedElement.x + updatedElement.width / 2,
+              updatedElement.y + updatedElement.width / 2,
+              Math.abs(updatedElement.width / 2),
+              0,
+              Math.PI * 2,
+            )
+            context.stroke()
+          }
+          break
+
+        case "arrow":
+          if (updatedElement.points && updatedElement.points.length > 1) {
+            const start = updatedElement.points[0]
+            const end = updatedElement.points[updatedElement.points.length - 1]
+
+            // Draw line
+            context.beginPath()
+            context.moveTo(start.x, start.y)
+            context.lineTo(end.x, end.y)
+            context.stroke()
+
+            // Draw arrowhead
+            const angle = Math.atan2(end.y - start.y, end.x - start.x)
+            context.beginPath()
+            context.moveTo(end.x, end.y)
+            context.lineTo(end.x - 15 * Math.cos(angle - Math.PI / 6), end.y - 15 * Math.sin(angle - Math.PI / 6))
+            context.lineTo(end.x - 15 * Math.cos(angle + Math.PI / 6), end.y - 15 * Math.sin(angle + Math.PI / 6))
+            context.closePath()
+            context.fill()
+          }
+          break
+
+        case "note":
+          if (
+            updatedElement.x !== undefined &&
+            updatedElement.y !== undefined &&
+            updatedElement.width !== undefined &&
+            updatedElement.height !== undefined &&
+            updatedElement.text
+          ) {
+            // Draw sticky note background
+            context.fillStyle = updatedElement.color + "80" // Add transparency
+            context.fillRect(updatedElement.x, updatedElement.y, updatedElement.width, updatedElement.height)
+
+            // Draw text
+            context.fillStyle = "#000000"
+            context.font = "14px Inter, sans-serif"
+            context.fillText(updatedElement.text, updatedElement.x + 10, updatedElement.y + 20)
+          }
+          break
+      }
+    }
+  }
+
+  const handleMouseUp = () => {
+    if (!isDrawing || !currentElement) return
+
+    addElement(currentElement)
+    setCurrentElement(null)
+    setIsDrawing(false)
+  }
+
+  const addElement = (element: DrawingElement) => {
+    // Add to history for undo/redo
+    const newHistory = history.slice(0, historyIndex + 1)
+    newHistory.push([...elements])
+    setHistory(newHistory)
+    setHistoryIndex(newHistory.length - 1)
+
+    // Add the new element
+    setElements((prevElements) => [...prevElements, element])
+
+    // Send to WebSocket if connected
+    if (socket && isConnected) {
+      socket.send(
+        JSON.stringify({
+          type: "draw",
+          element,
+        }),
+      )
+    }
+  }
+
+  const handleUndo = () => {
+    if (historyIndex >= 0) {
+      setElements(history[historyIndex])
+      setHistoryIndex(historyIndex - 1)
+    }
+  }
+
+  const handleRedo = () => {
+    if (historyIndex < history.length - 1) {
+      setElements(history[historyIndex + 2])
+      setHistoryIndex(historyIndex + 1)
+    }
+  }
+
+  const handleClear = () => {
+    // Add current state to history
+    const newHistory = [...history, [...elements]]
+    setHistory(newHistory)
+    setHistoryIndex(newHistory.length - 1)
+
+    // Clear the canvas
+    setElements([])
+  }
+
+  const handleDownload = () => {
+    if (!canvasRef.current) return
+
+    const link = document.createElement("a")
+    link.download = "brainboard.png"
+    link.href = canvasRef.current.toDataURL()
+    link.click()
+  }
+
+  // Replace the handleAddSticker function with this improved version:
+  const handleAddSticker = (stickerType: string) => {
+    if (!canvasRef.current) return
+
+    const canvas = canvasRef.current
+
+    // Use the stored position from when the sticker tool was selected
+    // Or default to center if not available
+    const x = currentPosition ? currentPosition.x : canvas.width / 2
+    const y = currentPosition ? currentPosition.y : canvas.height / 2
+
+    const newElement: DrawingElement = {
+      id: Date.now().toString(),
+      type: "sticker",
+      color: currentColor,
+      userId: 1,
+      x,
+      y,
+      stickerType,
+    }
+
+    addElement(newElement)
+    setShowStickers(false)
+    // Reset current position
+    setCurrentPosition(null)
+  }
+
+  // Replace the handleAddImage function with this improved version:
+  const handleAddImage = (imageUrl: string) => {
+    if (!canvasRef.current) return
+
+    const canvas = canvasRef.current
+
+    // Use the stored position from when the image tool was selected
+    // Or default to center if not available
+    const x = currentPosition ? currentPosition.x - 100 : canvas.width / 2 - 100
+    const y = currentPosition ? currentPosition.y - 100 : canvas.height / 2 - 100
+
+    const newElement: DrawingElement = {
+      id: Date.now().toString(),
+      type: "image",
+      color: currentColor,
+      userId: 1,
+      x,
+      y,
+      width: 200,
+      height: 200,
+      imageUrl,
+    }
+
+    addElement(newElement)
+    setShowImageUploader(false)
+    // Reset current position
+    setCurrentPosition(null)
+  }
+
+  const handleShare = (emails: string[], shareLink: string, boardId: string) => {
+    toast({
+      title: "Invitation sent!",
+      description: `Invited ${emails.length} people to collaborate`,
+    })
+
+    // Store the board ID for future reference
+    localStorage.setItem("brainboard-id", boardId)
+
+    // Add simulated users
+    if (emails.length > 0) {
+      const newUser = {
+        id: users.length + 1,
+        name: emails[0].split("@")[0],
+        avatar: "/placeholder.svg?height=40&width=40",
+        color: `#${Math.floor(Math.random() * 16777215).toString(16)}`,
+        x: Math.random() * 500,
+        y: Math.random() * 500,
+        online: false,
+      }
+
+      setUsers((prev) => [...prev, newUser])
+
+      // Simulate user coming online after a delay
+      setTimeout(() => {
+        setUsers((prev) => prev.map((user) => (user.id === newUser.id ? { ...user, online: true } : user)))
+
+        toast({
+          title: `${newUser.name} joined`,
+          description: "A new collaborator has joined your Brainboard",
+        })
+      }, 3000)
+    }
+
+    setShowShareDialog(false)
+  }
+
+  return (
+    <div className="flex flex-col h-[80vh] border rounded-lg overflow-hidden bg-white shadow-lg">
+      <div className="flex items-center justify-between p-2 border-b bg-white">
+        <Tabs defaultValue="draw" className="w-full" onValueChange={setActiveTab}>
+          <div className="flex items-center justify-between w-full">
+            <TabsList className="grid grid-cols-3 w-auto">
+              <TabsTrigger value="draw" className="px-4">
+                Draw
+              </TabsTrigger>
+              <TabsTrigger value="insert" className="px-4">
+                Insert
+              </TabsTrigger>
+              <TabsTrigger value="view" className="px-4">
+                View
+              </TabsTrigger>
+            </TabsList>
+
+            <div className="flex items-center space-x-1">
+              <TooltipProvider>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      onClick={handleUndo}
+                      disabled={historyIndex < 0}
+                      className="rounded-md"
+                    >
+                      <Undo className="h-4 w-4" />
+                    </Button>
+                  </TooltipTrigger>
+                  <TooltipContent>Undo</TooltipContent>
+                </Tooltip>
+              </TooltipProvider>
+
+              <TooltipProvider>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      onClick={handleRedo}
+                      disabled={historyIndex >= history.length - 1}
+                      className="rounded-md"
+                    >
+                      <Redo className="h-4 w-4" />
+                    </Button>
+                  </TooltipTrigger>
+                  <TooltipContent>Redo</TooltipContent>
+                </Tooltip>
+              </TooltipProvider>
+
+              <Separator orientation="vertical" className="h-6 mx-1" />
+
+              <TooltipProvider>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <Button variant="ghost" size="icon" onClick={handleClear} className="rounded-md">
+                      <Trash2 className="h-4 w-4" />
+                    </Button>
+                  </TooltipTrigger>
+                  <TooltipContent>Clear</TooltipContent>
+                </Tooltip>
+              </TooltipProvider>
+
+              <TooltipProvider>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <Button variant="ghost" size="icon" onClick={handleDownload} className="rounded-md">
+                      <Download className="h-4 w-4" />
+                    </Button>
+                  </TooltipTrigger>
+                  <TooltipContent>Download</TooltipContent>
+                </Tooltip>
+              </TooltipProvider>
+
+              <Separator orientation="vertical" className="h-6 mx-1" />
+
+              <TooltipProvider>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <Button variant="ghost" size="icon" onClick={() => setShowShareDialog(true)} className="rounded-md">
+                      <Share2 className="h-4 w-4" />
+                    </Button>
+                  </TooltipTrigger>
+                  <TooltipContent>Share</TooltipContent>
+                </Tooltip>
+              </TooltipProvider>
+
+              <TooltipProvider>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <Button
+                      variant={showUsers ? "default" : "ghost"}
+                      size="icon"
+                      onClick={() => setShowUsers(!showUsers)}
+                      className={cn("rounded-md relative", isConnected ? "text-green-600" : "text-amber-600")}
+                    >
+                      <Users className="h-4 w-4" />
+                      <span className="absolute -top-1 -right-1 bg-primary text-primary-foreground rounded-full w-4 h-4 text-[10px] flex items-center justify-center">
+                        {users.filter((u) => u.online).length}
+                      </span>
+                    </Button>
+                  </TooltipTrigger>
+                  <TooltipContent>{isConnected ? "Connected Users" : "Connecting..."}</TooltipContent>
+                </Tooltip>
+              </TooltipProvider>
+            </div>
+          </div>
+
+          <TabsContent value="draw" className="mt-0 pt-2 border-t">
+            <div className="flex items-center space-x-1 overflow-x-auto pb-1 scrollbar-hide">
+              <TooltipProvider>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <Button
+                      variant={currentTool === "select" ? "default" : "ghost"}
+                      size="sm"
+                      onClick={() => setCurrentTool("select")}
+                      className="rounded-md"
+                    >
+                      <MousePointer className="h-4 w-4 mr-1" />
+                      <span className="text-xs">Select</span>
+                    </Button>
+                  </TooltipTrigger>
+                  <TooltipContent>Select</TooltipContent>
+                </Tooltip>
+              </TooltipProvider>
+
+              <TooltipProvider>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <Button
+                      variant={currentTool === "pen" ? "default" : "ghost"}
+                      size="sm"
+                      onClick={() => setCurrentTool("pen")}
+                      className="rounded-md"
+                    >
+                      <Pencil className="h-4 w-4 mr-1" />
+                      <span className="text-xs">Pen</span>
+                    </Button>
+                  </TooltipTrigger>
+                  <TooltipContent>Pen</TooltipContent>
+                </Tooltip>
+              </TooltipProvider>
+
+              <TooltipProvider>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <Button
+                      variant={currentTool === "eraser" ? "default" : "ghost"}
+                      size="sm"
+                      onClick={() => setCurrentTool("eraser")}
+                      className="rounded-md"
+                    >
+                      <Eraser className="h-4 w-4 mr-1" />
+                      <span className="text-xs">Eraser</span>
+                    </Button>
+                  </TooltipTrigger>
+                  <TooltipContent>Eraser</TooltipContent>
+                </Tooltip>
+              </TooltipProvider>
+
+              <Separator orientation="vertical" className="h-6 mx-1" />
+
+              <TooltipProvider>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <Button
+                      variant={currentTool === "rectangle" ? "default" : "ghost"}
+                      size="sm"
+                      onClick={() => setCurrentTool("rectangle")}
+                      className="rounded-md"
+                    >
+                      <Square className="h-4 w-4 mr-1" />
+                      <span className="text-xs">Rectangle</span>
+                    </Button>
+                  </TooltipTrigger>
+                  <TooltipContent>Rectangle</TooltipContent>
+                </Tooltip>
+              </TooltipProvider>
+
+              <TooltipProvider>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <Button
+                      variant={currentTool === "circle" ? "default" : "ghost"}
+                      size="sm"
+                      onClick={() => setCurrentTool("circle")}
+                      className="rounded-md"
+                    >
+                      <Circle className="h-4 w-4 mr-1" />
+                      <span className="text-xs">Circle</span>
+                    </Button>
+                  </TooltipTrigger>
+                  <TooltipContent>Circle</TooltipContent>
+                </Tooltip>
+              </TooltipProvider>
+
+              <TooltipProvider>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <Button
+                      variant={currentTool === "arrow" ? "default" : "ghost"}
+                      size="sm"
+                      onClick={() => setCurrentTool("arrow")}
+                      className="rounded-md"
+                    >
+                      <ArrowUpRight className="h-4 w-4 mr-1" />
+                      <span className="text-xs">Arrow</span>
+                    </Button>
+                  </TooltipTrigger>
+                  <TooltipContent>Arrow</TooltipContent>
+                </Tooltip>
+              </TooltipProvider>
+
+              <Separator orientation="vertical" className="h-6 mx-1" />
+
+              <ColorPicker color={currentColor} onChange={setCurrentColor} />
+
+              <div className="flex items-center space-x-1 ml-2">
+                <span className="text-xs text-slate-500">Width:</span>
+                <input
+                  type="range"
+                  min="1"
+                  max="10"
+                  value={lineWidth}
+                  onChange={(e) => setLineWidth(Number.parseInt(e.target.value))}
+                  className="w-20"
+                />
+                <span className="text-xs text-slate-500 w-4">{lineWidth}</span>
+              </div>
+            </div>
+          </TabsContent>
+
+          <TabsContent value="insert" className="mt-0 pt-2 border-t">
+            <div className="flex items-center space-x-1 overflow-x-auto pb-1 scrollbar-hide">
+              <TooltipProvider>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <Button
+                      variant={currentTool === "text" ? "default" : "ghost"}
+                      size="sm"
+                      onClick={() => setCurrentTool("text")}
+                      className="rounded-md"
+                    >
+                      <Type className="h-4 w-4 mr-1" />
+                      <span className="text-xs">Text</span>
+                    </Button>
+                  </TooltipTrigger>
+                  <TooltipContent>Text</TooltipContent>
+                </Tooltip>
+              </TooltipProvider>
+
+              <TooltipProvider>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <Button
+                      variant={currentTool === "note" ? "default" : "ghost"}
+                      size="sm"
+                      onClick={() => setCurrentTool("note")}
+                      className="rounded-md"
+                    >
+                      <StickyNote className="h-4 w-4 mr-1" />
+                      <span className="text-xs">Note</span>
+                    </Button>
+                  </TooltipTrigger>
+                  <TooltipContent>Sticky Note</TooltipContent>
+                </Tooltip>
+              </TooltipProvider>
+
+              <TooltipProvider>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <Button
+                      variant={currentTool === "sticker" ? "default" : "ghost"}
+                      size="sm"
+                      onClick={() => setCurrentTool("sticker")}
+                      className="rounded-md"
+                    >
+                      <Sticker className="h-4 w-4 mr-1" />
+                      <span className="text-xs">Sticker</span>
+                    </Button>
+                  </TooltipTrigger>
+                  <TooltipContent>Stickers</TooltipContent>
+                </Tooltip>
+              </TooltipProvider>
+
+              <TooltipProvider>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <Button
+                      variant={currentTool === "image" ? "default" : "ghost"}
+                      size="sm"
+                      onClick={() => setCurrentTool("image")}
+                      className="rounded-md"
+                    >
+                      <ImageIcon className="h-4 w-4 mr-1" />
+                      <span className="text-xs">Image</span>
+                    </Button>
+                  </TooltipTrigger>
+                  <TooltipContent>Add Image</TooltipContent>
+                </Tooltip>
+              </TooltipProvider>
+            </div>
+          </TabsContent>
+
+          <TabsContent value="view" className="mt-0 pt-2 border-t">
+            <div className="flex items-center space-x-1 overflow-x-auto pb-1 scrollbar-hide">
+              <TooltipProvider>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <Button variant="ghost" size="sm" className="rounded-md">
+                      <Layers className="h-4 w-4 mr-1" />
+                      <span className="text-xs">Layers</span>
+                    </Button>
+                  </TooltipTrigger>
+                  <TooltipContent>Manage Layers</TooltipContent>
+                </Tooltip>
+              </TooltipProvider>
+
+              <TooltipProvider>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <Button variant="ghost" size="sm" className="rounded-md">
+                      <Settings className="h-4 w-4 mr-1" />
+                      <span className="text-xs">Settings</span>
+                    </Button>
+                  </TooltipTrigger>
+                  <TooltipContent>Board Settings</TooltipContent>
+                </Tooltip>
+              </TooltipProvider>
+            </div>
+          </TabsContent>
+        </Tabs>
+      </div>
+
+      <div className="relative flex-grow bg-slate-50">
+        <canvas
+          ref={canvasRef}
+          className="absolute inset-0 w-full h-full cursor-crosshair bg-white"
+          onMouseDown={handleMouseDown}
+          onMouseMove={handleMouseMove}
+          onMouseUp={handleMouseUp}
+          onMouseLeave={handleMouseUp}
+        />
+
+        {/* User cursors */}
+        {users
+          .filter((u) => u.online)
+          .map((user) => (
+            <div
+              key={user.id}
+              className="absolute pointer-events-none"
+              style={{
+                left: `${user.x / (canvasRef.current ? canvasRef.current.width / canvasRef.current.clientWidth : 1)}px`,
+                top: `${user.y / (canvasRef.current ? canvasRef.current.height / canvasRef.current.clientHeight : 1)}px`,
+                transition: user.id === 1 ? "none" : "all 0.5s ease-out",
+                zIndex: 10,
+              }}
+            >
+              <div
+                className="w-4 h-4"
+                style={{
+                  backgroundColor: user.color,
+                  clipPath: "polygon(0% 0%, 50% 100%, 100% 0%)",
+                  transform: "translate(-50%, -50%) rotate(-45deg)",
+                  position: "absolute",
+                }}
+              />
+              {user.id !== 1 && (
+                <div className="absolute -mt-6 -ml-4 whitespace-nowrap bg-black bg-opacity-75 text-white text-xs px-1 py-0.5 rounded">
+                  {user.name}
+                </div>
+              )}
+            </div>
+          ))}
+      </div>
+
+      {showUsers && <UserPresence users={users} />}
+      {showShareDialog && <ShareDialog onShare={handleShare} onCancel={() => setShowShareDialog(false)} />}
+      {showStickers && <StickersPanel onSelect={handleAddSticker} onClose={() => setShowStickers(false)} />}
+      {showImageUploader && <ImageUploader onUpload={handleAddImage} onClose={() => setShowImageUploader(false)} />}
+    </div>
+  )
+}
