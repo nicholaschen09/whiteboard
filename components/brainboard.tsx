@@ -1583,7 +1583,6 @@ export function Brainboard({ boardId }: BrainboardProps) {
           onShowGridChange={setShowGrid}
           snapToGrid={snapToGrid}
           onSnapToGridChange={setSnapToGrid}
-          onEraseBoard={handleEraseBoard}
         />
       )}
       {showLayers && (

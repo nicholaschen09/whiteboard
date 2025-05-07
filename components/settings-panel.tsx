@@ -4,9 +4,7 @@ import { Button } from "@/components/ui/button"
 import { Card } from "@/components/ui/card"
 import { Label } from "@/components/ui/label"
 import { Switch } from "@/components/ui/switch"
-import { X, Trash2 } from "lucide-react"
-import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog"
-import { Separator } from "@/components/ui/separator"
+import { X } from "lucide-react"
 
 interface SettingsPanelProps {
     onClose: () => void
@@ -14,7 +12,6 @@ interface SettingsPanelProps {
     onShowGridChange: (show: boolean) => void
     snapToGrid: boolean
     onSnapToGridChange: (snap: boolean) => void
-    onEraseBoard: () => void
 }
 
 export function SettingsPanel({
@@ -22,8 +19,7 @@ export function SettingsPanel({
     showGrid,
     onShowGridChange,
     snapToGrid,
-    onSnapToGridChange,
-    onEraseBoard
+    onSnapToGridChange
 }: SettingsPanelProps) {
     return (
         <Card className="absolute bottom-4 right-4 w-80 p-4 shadow-lg">
@@ -57,34 +53,6 @@ export function SettingsPanel({
                         onCheckedChange={onSnapToGridChange}
                     />
                 </div>
-
-                <Separator className="my-4" />
-
-                <AlertDialog>
-                    <AlertDialogTrigger asChild>
-                        <Button
-                            variant="destructive"
-                            className="w-full"
-                        >
-                            <Trash2 className="h-4 w-4 mr-2" />
-                            Erase Board
-                        </Button>
-                    </AlertDialogTrigger>
-                    <AlertDialogContent>
-                        <AlertDialogHeader>
-                            <AlertDialogTitle>Erase Board</AlertDialogTitle>
-                            <AlertDialogDescription>
-                                Are you sure you want to erase the entire board? This action cannot be undone.
-                            </AlertDialogDescription>
-                        </AlertDialogHeader>
-                        <AlertDialogFooter>
-                            <AlertDialogCancel>Cancel</AlertDialogCancel>
-                            <AlertDialogAction onClick={onEraseBoard}>
-                                Erase
-                            </AlertDialogAction>
-                        </AlertDialogFooter>
-                    </AlertDialogContent>
-                </AlertDialog>
             </div>
         </Card>
     )
