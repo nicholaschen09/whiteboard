@@ -180,7 +180,8 @@ export function Brainboard({ boardId }: BrainboardProps) {
   const [dragOffset, setDragOffset] = useState({ x: 0, y: 0 })
   const [isResizing, setIsResizing] = useState(false)
   const [resizeDirection, setResizeDirection] = useState<'nw' | 'ne' | 'sw' | 'se' | null>(null)
-  const [originalSize, setOriginalSize] = useState<{ width: number; height: number } | null>(null)
+  const [originalSize, setOriginalSize] = useState<{ width: number; height: number; x: number; y: number } | null>(null)
+  const [resizeStartPoint, setResizeStartPoint] = useState<{ x: number; y: number } | null>(null)
 
   // Add temporary canvas ref
   const tempCanvasRef = useRef<HTMLCanvasElement>(null)
@@ -808,7 +809,7 @@ export function Brainboard({ boardId }: BrainboardProps) {
     }
   }
 
-  // Update handleMouseDown to remove sticker handling since we'll handle it directly
+  // Update handleMouseDown to better handle resize initiation
   const handleMouseDown = (e: React.MouseEvent<HTMLCanvasElement>) => {
     if (!canvasRef.current) return
 
@@ -839,6 +840,8 @@ export function Brainboard({ boardId }: BrainboardProps) {
     if (currentTool === "select") {
       // Check if we clicked on any element
       const clickedElement = elements.find(element => {
+        if (!element) return false
+
         switch (element.type) {
           case "text":
           case "sticker":
@@ -870,7 +873,13 @@ export function Brainboard({ boardId }: BrainboardProps) {
               if (isOnResizeHandle) {
                 setIsResizing(true)
                 setResizeDirection(isOnResizeHandle)
-                setOriginalSize({ width: element.width, height: element.height })
+                setOriginalSize({
+                  width: element.width,
+                  height: element.height,
+                  x: element.x,
+                  y: element.y
+                })
+                setResizeStartPoint({ x, y })
                 return true
               }
 
@@ -975,7 +984,7 @@ export function Brainboard({ boardId }: BrainboardProps) {
     setTextInputValue("")
   }
 
-  // Update handleMouseMove to use requestAnimationFrame more efficiently
+  // Update handleMouseMove to make resizing smoother
   const handleMouseMove = (e: React.MouseEvent<HTMLCanvasElement>) => {
     if (!canvasRef.current) return
 
@@ -995,65 +1004,102 @@ export function Brainboard({ boardId }: BrainboardProps) {
     setUsers((prevUsers) => prevUsers.map((user) => (user.id === 1 ? { ...user, x, y } : user)))
 
     // Handle resizing
-    if (isResizing && selectedElement && originalSize) {
+    if (isResizing && selectedElement && originalSize && resizeStartPoint) {
       const element = selectedElement
       let newWidth = originalSize.width
       let newHeight = originalSize.height
-      let newX = element.x
-      let newY = element.y
+      let newX = originalSize.x
+      let newY = originalSize.y
+
+      // Calculate the change in position
+      const dx = x - resizeStartPoint.x
+      const dy = y - resizeStartPoint.y
 
       switch (resizeDirection) {
         case 'se':
-          newWidth = Math.max(20, x - (element.x || 0))
-          newHeight = Math.max(20, y - (element.y || 0))
+          if (element.type === 'circle') {
+            const radius = Math.max(20, Math.sqrt(dx * dx + dy * dy))
+            newWidth = radius * 2
+            newHeight = radius * 2
+          } else {
+            newWidth = Math.max(20, originalSize.width + dx)
+            newHeight = Math.max(20, originalSize.height + dy)
+          }
           break
         case 'sw':
-          newWidth = Math.max(20, (element.x || 0) + (element.width || 0) - x)
-          newHeight = Math.max(20, y - (element.y || 0))
-          newX = x
+          if (element.type === 'circle') {
+            const radius = Math.max(20, Math.sqrt(dx * dx + dy * dy))
+            newWidth = radius * 2
+            newHeight = radius * 2
+            newX = originalSize.x + originalSize.width - newWidth
+          } else {
+            newWidth = Math.max(20, originalSize.width - dx)
+            newHeight = Math.max(20, originalSize.height + dy)
+            newX = originalSize.x + dx
+          }
           break
         case 'ne':
-          newWidth = Math.max(20, x - (element.x || 0))
-          newHeight = Math.max(20, (element.y || 0) + (element.height || 0) - y)
-          newY = y
+          if (element.type === 'circle') {
+            const radius = Math.max(20, Math.sqrt(dx * dx + dy * dy))
+            newWidth = radius * 2
+            newHeight = radius * 2
+            newY = originalSize.y + originalSize.height - newHeight
+          } else {
+            newWidth = Math.max(20, originalSize.width + dx)
+            newHeight = Math.max(20, originalSize.height - dy)
+            newY = originalSize.y + dy
+          }
           break
         case 'nw':
-          newWidth = Math.max(20, (element.x || 0) + (element.width || 0) - x)
-          newHeight = Math.max(20, (element.y || 0) + (element.height || 0) - y)
-          newX = x
-          newY = y
+          if (element.type === 'circle') {
+            const radius = Math.max(20, Math.sqrt(dx * dx + dy * dy))
+            newWidth = radius * 2
+            newHeight = radius * 2
+            newX = originalSize.x + originalSize.width - newWidth
+            newY = originalSize.y + originalSize.height - newHeight
+          } else {
+            newWidth = Math.max(20, originalSize.width - dx)
+            newHeight = Math.max(20, originalSize.height - dy)
+            newX = originalSize.x + dx
+            newY = originalSize.y + dy
+          }
           break
       }
 
-      // Batch state updates
-      requestAnimationFrame(() => {
-        setElements(prevElements =>
-          prevElements.map(el =>
-            el.id === selectedElement.id
-              ? { ...el, x: newX, y: newY, width: newWidth, height: newHeight }
-              : el
-          )
-        )
+      // Update the element's position and size
+      const updatedElement = {
+        ...element,
+        x: newX,
+        y: newY,
+        width: newWidth,
+        height: newHeight
+      }
 
-        setLayers(prevLayers =>
-          prevLayers.map(layer =>
-            layer.id === activeLayer
-              ? {
-                ...layer,
-                elements: layer.elements.map(el =>
-                  el.id === selectedElement.id
-                    ? { ...el, x: newX, y: newY, width: newWidth, height: newHeight }
-                    : el
-                )
-              }
-              : layer
-          )
+      // Update the elements array
+      setElements(prevElements =>
+        prevElements.map(el =>
+          el.id === selectedElement.id ? updatedElement : el
         )
+      )
 
-        if (context) {
-          drawElements()
-        }
-      })
+      // Update the layers
+      setLayers(prevLayers =>
+        prevLayers.map(layer =>
+          layer.id === activeLayer
+            ? {
+              ...layer,
+              elements: layer.elements.map(el =>
+                el.id === selectedElement.id ? updatedElement : el
+              )
+            }
+            : layer
+        )
+      )
+
+      // Force a redraw
+      if (context) {
+        drawElements()
+      }
       return
     }
 
@@ -1205,12 +1251,12 @@ export function Brainboard({ boardId }: BrainboardProps) {
   const handleMouseUp = () => {
     if (isDragging) {
       setIsDragging(false)
-      // Don't clear selection on mouse up
     }
     if (isResizing) {
       setIsResizing(false)
       setResizeDirection(null)
       setOriginalSize(null)
+      setResizeStartPoint(null)
     }
     if (!isDrawing || !currentElement) return
 
