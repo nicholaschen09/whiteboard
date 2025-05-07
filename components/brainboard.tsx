@@ -552,9 +552,17 @@ export function Brainboard({ boardId }: BrainboardProps) {
               break
 
             case "circle":
-              if (element.x !== undefined && element.y !== undefined && element.width !== undefined) {
+              if (
+                element.x !== undefined &&
+                element.y !== undefined &&
+                element.width !== undefined
+              ) {
+                const centerX = element.x + element.width / 2
+                const centerY = element.y + element.width / 2
+                const radius = element.width / 2
+
                 context.beginPath()
-                context.arc(element.x + element.width / 2, element.y + element.width / 2, element.width / 2, 0, Math.PI * 2)
+                context.arc(centerX, centerY, radius, 0, Math.PI * 2)
                 context.stroke()
               }
               break
@@ -756,6 +764,13 @@ export function Brainboard({ boardId }: BrainboardProps) {
         newElement.height = 0
         break
 
+      case "circle":
+        newElement.x = x
+        newElement.y = y
+        newElement.width = 0
+        newElement.height = 0
+        break
+
       case "select":
         return
     }
@@ -868,6 +883,16 @@ export function Brainboard({ boardId }: BrainboardProps) {
           updatedElement.height = y - updatedElement.y
         }
         break
+
+      case "circle":
+        if (updatedElement.x !== undefined && updatedElement.y !== undefined) {
+          const dx = x - updatedElement.x
+          const dy = y - updatedElement.y
+          const radius = Math.sqrt(dx * dx + dy * dy)
+          updatedElement.width = radius * 2
+          updatedElement.height = radius * 2
+        }
+        break
     }
 
     setCurrentElement(updatedElement)
@@ -904,6 +929,22 @@ export function Brainboard({ boardId }: BrainboardProps) {
           ) {
             context.beginPath()
             context.rect(updatedElement.x, updatedElement.y, updatedElement.width, updatedElement.height)
+            context.stroke()
+          }
+          break
+
+        case "circle":
+          if (
+            updatedElement.x !== undefined &&
+            updatedElement.y !== undefined &&
+            updatedElement.width !== undefined
+          ) {
+            const centerX = updatedElement.x + updatedElement.width / 2
+            const centerY = updatedElement.y + updatedElement.width / 2
+            const radius = updatedElement.width / 2
+
+            context.beginPath()
+            context.arc(centerX, centerY, radius, 0, Math.PI * 2)
             context.stroke()
           }
           break
