@@ -1252,7 +1252,27 @@ export function Brainboard({ boardId }: BrainboardProps) {
               { x: element.x, y: element.y + element.height / 2 }, // left-center
               { x: element.x + element.width, y: element.y + element.height / 2 } // right-center
             ]
-            return points.some(point => isNearPoint(point.x, point.y))
+
+            // Check if eraser is near any corner or edge point
+            if (points.some(point => isNearPoint(point.x, point.y))) {
+              return true
+            }
+
+            // Check if eraser is inside the rectangle
+            if (x >= element.x && x <= element.x + element.width &&
+              y >= element.y && y <= element.y + element.height) {
+              return true
+            }
+
+            // Check if eraser is near any edge of the rectangle
+            const isNearEdge = (
+              (Math.abs(x - element.x) < eraserSize && y >= element.y && y <= element.y + element.height) || // left edge
+              (Math.abs(x - (element.x + element.width)) < eraserSize && y >= element.y && y <= element.y + element.height) || // right edge
+              (Math.abs(y - element.y) < eraserSize && x >= element.x && x <= element.x + element.width) || // top edge
+              (Math.abs(y - (element.y + element.height)) < eraserSize && x >= element.x && x <= element.x + element.width) // bottom edge
+            )
+
+            return isNearEdge
           }
           return false
 
@@ -1264,8 +1284,19 @@ export function Brainboard({ boardId }: BrainboardProps) {
             const dx = x - centerX
             const dy = y - centerY
             const distance = Math.sqrt(dx * dx + dy * dy)
+
             // Check if eraser is near the circle's edge or center
-            return Math.abs(distance - radius) < eraserSize || distance < eraserSize
+            if (Math.abs(distance - radius) < eraserSize || distance < eraserSize) {
+              return true
+            }
+
+            // Check if eraser is near any point on the circle's circumference
+            const angle = Math.atan2(dy, dx)
+            const edgeX = centerX + radius * Math.cos(angle)
+            const edgeY = centerY + radius * Math.sin(angle)
+            const edgeDistance = Math.sqrt(Math.pow(x - edgeX, 2) + Math.pow(y - edgeY, 2))
+
+            return edgeDistance < eraserSize
           }
           return false
 
@@ -1387,12 +1418,9 @@ export function Brainboard({ boardId }: BrainboardProps) {
       <div className="flex items-center justify-between p-2 border-b bg-slate-50">
         <Tabs defaultValue="draw" className="w-full" onValueChange={setActiveTab}>
           <div className="flex items-center justify-between w-full">
-            <TabsList className="grid grid-cols-3 w-auto bg-slate-100">
+            <TabsList className="grid grid-cols-2 w-auto bg-slate-100">
               <TabsTrigger value="draw" className="px-4 data-[state=active]:bg-white">
                 Draw
-              </TabsTrigger>
-              <TabsTrigger value="insert" className="px-4 data-[state=active]:bg-white">
-                Insert
               </TabsTrigger>
               <TabsTrigger value="view" className="px-4 data-[state=active]:bg-white">
                 View
@@ -1623,44 +1651,6 @@ export function Brainboard({ boardId }: BrainboardProps) {
 
               <Separator orientation="vertical" className="h-6 mx-1" />
 
-              <ColorPicker color={currentColor} onChange={setCurrentColor} />
-
-              <div className="flex items-center space-x-2 ml-2 bg-slate-50 px-3 py-1.5 rounded-md">
-                <span className="text-xs text-slate-500">Width</span>
-                <input
-                  type="range"
-                  min="1"
-                  max="10"
-                  value={lineWidth}
-                  onChange={(e) => setLineWidth(Number.parseInt(e.target.value))}
-                  className="w-24 h-6 accent-slate-600 
-                    [&::-webkit-slider-runnable-track]:h-1.5 
-                    [&::-webkit-slider-runnable-track]:rounded-full
-                    [&::-webkit-slider-runnable-track]:bg-slate-300
-                    [&::-webkit-slider-thumb]:h-4 
-                    [&::-webkit-slider-thumb]:w-4 
-                    [&::-webkit-slider-thumb]:rounded-full
-                    [&::-webkit-slider-thumb]:bg-slate-600
-                    [&::-webkit-slider-thumb]:appearance-none
-                    [&::-webkit-slider-thumb]:-mt-1
-                    [&::-moz-range-track]:h-1.5
-                    [&::-moz-range-track]:rounded-full
-                    [&::-moz-range-track]:bg-slate-300
-                    [&::-moz-range-thumb]:h-4 
-                    [&::-moz-range-thumb]:w-4 
-                    [&::-moz-range-thumb]:rounded-full
-                    [&::-moz-range-thumb]:bg-slate-600
-                    [&::-moz-range-thumb]:-mt-1"
-                />
-                <div className="flex items-center justify-center w-6 h-6 bg-white border rounded-md">
-                  <span className="text-xs font-medium">{lineWidth}</span>
-                </div>
-              </div>
-            </div>
-          </TabsContent>
-
-          <TabsContent value="insert" className="mt-0 pt-2 border-t">
-            <div className="flex items-center space-x-1 overflow-x-auto pb-1 scrollbar-hide">
               <TooltipProvider>
                 <Tooltip>
                   <TooltipTrigger asChild>
@@ -1724,6 +1714,42 @@ export function Brainboard({ boardId }: BrainboardProps) {
                   <TooltipContent>Add Image</TooltipContent>
                 </Tooltip>
               </TooltipProvider>
+
+              <Separator orientation="vertical" className="h-6 mx-1" />
+
+              <ColorPicker color={currentColor} onChange={setCurrentColor} />
+
+              <div className="flex items-center space-x-2 ml-2 bg-slate-50 px-3 py-1.5 rounded-md">
+                <span className="text-xs text-slate-500">Width</span>
+                <input
+                  type="range"
+                  min="1"
+                  max="10"
+                  value={lineWidth}
+                  onChange={(e) => setLineWidth(Number.parseInt(e.target.value))}
+                  className="w-24 h-6 accent-slate-600 
+                    [&::-webkit-slider-runnable-track]:h-1.5 
+                    [&::-webkit-slider-runnable-track]:rounded-full
+                    [&::-webkit-slider-runnable-track]:bg-slate-300
+                    [&::-webkit-slider-thumb]:h-4 
+                    [&::-webkit-slider-thumb]:w-4 
+                    [&::-webkit-slider-thumb]:rounded-full
+                    [&::-webkit-slider-thumb]:bg-slate-600
+                    [&::-webkit-slider-thumb]:appearance-none
+                    [&::-webkit-slider-thumb]:-mt-1
+                    [&::-moz-range-track]:h-1.5
+                    [&::-moz-range-track]:rounded-full
+                    [&::-moz-range-track]:bg-slate-300
+                    [&::-moz-range-thumb]:h-4 
+                    [&::-moz-range-thumb]:w-4 
+                    [&::-moz-range-thumb]:rounded-full
+                    [&::-moz-range-thumb]:bg-slate-600
+                    [&::-moz-range-thumb]:-mt-1"
+                />
+                <div className="flex items-center justify-center w-6 h-6 bg-white border rounded-md">
+                  <span className="text-xs font-medium">{lineWidth}</span>
+                </div>
+              </div>
             </div>
           </TabsContent>
 
