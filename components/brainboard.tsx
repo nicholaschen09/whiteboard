@@ -35,6 +35,7 @@ import { useToast } from "@/hooks/use-toast"
 import { Separator } from "@/components/ui/separator"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { SettingsPanel } from "./settings-panel"
+import { LayersPanel } from "./layers-panel"
 
 // Mock WebSocket connection
 const createMockWebSocket = () => {
@@ -97,6 +98,14 @@ type DrawingElement = {
   lineWidth?: number
 }
 
+type Layer = {
+  id: string
+  name: string
+  visible: boolean
+  locked: boolean
+  elements: DrawingElement[]
+}
+
 interface BrainboardProps {
   boardId?: string
 }
@@ -130,6 +139,17 @@ export function Brainboard({ boardId }: BrainboardProps) {
   const [currentPosition, setCurrentPosition] = useState<{ x: number; y: number } | null>(null)
   const [activeTab, setActiveTab] = useState<string>("draw")
   const [showSettings, setShowSettings] = useState(false)
+  const [layers, setLayers] = useState<Layer[]>([
+    {
+      id: "default",
+      name: "Default Layer",
+      visible: true,
+      locked: false,
+      elements: []
+    }
+  ])
+  const [showLayers, setShowLayers] = useState(false)
+  const [activeLayer, setActiveLayer] = useState<string>("default")
 
   // Save elements to localStorage whenever they change
   useEffect(() => {
@@ -137,6 +157,40 @@ export function Brainboard({ boardId }: BrainboardProps) {
       localStorage.setItem('whiteboard-elements', JSON.stringify(elements))
     }
   }, [elements])
+
+  // Update elements state to use layers
+  useEffect(() => {
+    if (elements.length > 0) {
+      setLayers(prevLayers => {
+        const updatedLayers = [...prevLayers]
+        const activeLayerIndex = updatedLayers.findIndex(layer => layer.id === activeLayer)
+        if (activeLayerIndex !== -1) {
+          updatedLayers[activeLayerIndex] = {
+            ...updatedLayers[activeLayerIndex],
+            elements: elements
+          }
+        }
+        return updatedLayers
+      })
+    }
+  }, [elements])
+
+  // Save layers to localStorage
+  useEffect(() => {
+    if (layers.length > 0) {
+      localStorage.setItem('whiteboard-layers', JSON.stringify(layers))
+    }
+  }, [layers])
+
+  // Load layers from localStorage on initial render
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      const savedLayers = localStorage.getItem('whiteboard-layers')
+      if (savedLayers) {
+        setLayers(JSON.parse(savedLayers))
+      }
+    }
+  }, [])
 
   // Add this near the top of the component, after the useState declarations
   useEffect(() => {
@@ -318,138 +372,143 @@ export function Brainboard({ boardId }: BrainboardProps) {
     const canvas = canvasRef.current
     context.clearRect(0, 0, canvas.width, canvas.height)
 
-    elements.forEach((element) => {
-      context.strokeStyle = element.color
-      context.fillStyle = element.color
-      context.lineWidth = element.lineWidth || 2
+    // Draw elements from all visible layers
+    layers.forEach(layer => {
+      if (layer.visible) {
+        layer.elements.forEach(element => {
+          context.strokeStyle = element.color
+          context.fillStyle = element.color
+          context.lineWidth = element.lineWidth || 2
 
-      switch (element.type) {
-        case "pen":
-          if (element.points && element.points.length > 0) {
-            context.beginPath()
-            context.moveTo(element.points[0].x, element.points[0].y)
+          switch (element.type) {
+            case "pen":
+              if (element.points && element.points.length > 0) {
+                context.beginPath()
+                context.moveTo(element.points[0].x, element.points[0].y)
 
-            element.points.forEach((point) => {
-              context.lineTo(point.x, point.y)
-            })
+                element.points.forEach((point) => {
+                  context.lineTo(point.x, point.y)
+                })
 
-            context.stroke()
-          }
-          break
-
-        case "rectangle":
-          if (
-            element.x !== undefined &&
-            element.y !== undefined &&
-            element.width !== undefined &&
-            element.height !== undefined
-          ) {
-            context.beginPath()
-            context.rect(element.x, element.y, element.width, element.height)
-            context.stroke()
-          }
-          break
-
-        case "circle":
-          if (element.x !== undefined && element.y !== undefined && element.width !== undefined) {
-            context.beginPath()
-            context.arc(element.x + element.width / 2, element.y + element.width / 2, element.width / 2, 0, Math.PI * 2)
-            context.stroke()
-          }
-          break
-
-        case "text":
-          if (element.x !== undefined && element.y !== undefined && element.text) {
-            context.font = "16px Inter, sans-serif"
-            context.fillText(element.text, element.x, element.y)
-          }
-          break
-
-        case "sticker":
-          if (element.x !== undefined && element.y !== undefined && element.stickerType) {
-            context.font = "32px sans-serif"
-            context.fillText(element.stickerType, element.x, element.y)
-          }
-          break
-
-        case "image":
-          if (
-            element.x !== undefined &&
-            element.y !== undefined &&
-            element.width !== undefined &&
-            element.height !== undefined &&
-            element.imageUrl
-          ) {
-            const img = new Image()
-            img.src = element.imageUrl
-            img.crossOrigin = "anonymous"
-            img.onload = () => {
-              context.drawImage(img, element.x!, element.y!, element.width!, element.height!)
-            }
-          }
-          break
-
-        case "arrow":
-          if (element.points && element.points.length > 1) {
-            const start = element.points[0]
-            const end = element.points[element.points.length - 1]
-
-            // Draw line
-            context.beginPath()
-            context.moveTo(start.x, start.y)
-            context.lineTo(end.x, end.y)
-            context.stroke()
-
-            // Draw arrowhead
-            const angle = Math.atan2(end.y - start.y, end.x - start.x)
-            context.beginPath()
-            context.moveTo(end.x, end.y)
-            context.lineTo(end.x - 15 * Math.cos(angle - Math.PI / 6), end.y - 15 * Math.sin(angle - Math.PI / 6))
-            context.lineTo(end.x - 15 * Math.cos(angle + Math.PI / 6), end.y - 15 * Math.sin(angle + Math.PI / 6))
-            context.closePath()
-            context.fill()
-          }
-          break
-
-        case "note":
-          if (
-            element.x !== undefined &&
-            element.y !== undefined &&
-            element.width !== undefined &&
-            element.height !== undefined &&
-            element.text
-          ) {
-            // Draw sticky note background
-            context.fillStyle = element.color + "80" // Add transparency
-            context.fillRect(element.x, element.y, element.width, element.height)
-
-            // Draw text
-            context.fillStyle = "#000000"
-            context.font = "14px Inter, sans-serif"
-
-            // Wrap text
-            const words = element.text.split(" ")
-            let line = ""
-            const lineHeight = 18
-            let offsetY = 20
-
-            for (let i = 0; i < words.length; i++) {
-              const testLine = line + words[i] + " "
-              const metrics = context.measureText(testLine)
-              const testWidth = metrics.width
-
-              if (testWidth > element.width - 20 && i > 0) {
-                context.fillText(line, element.x + 10, element.y + offsetY)
-                line = words[i] + " "
-                offsetY += lineHeight
-              } else {
-                line = testLine
+                context.stroke()
               }
-            }
+              break
 
-            context.fillText(line, element.x + 10, element.y + offsetY)
+            case "rectangle":
+              if (
+                element.x !== undefined &&
+                element.y !== undefined &&
+                element.width !== undefined &&
+                element.height !== undefined
+              ) {
+                context.beginPath()
+                context.rect(element.x, element.y, element.width, element.height)
+                context.stroke()
+              }
+              break
+
+            case "circle":
+              if (element.x !== undefined && element.y !== undefined && element.width !== undefined) {
+                context.beginPath()
+                context.arc(element.x + element.width / 2, element.y + element.width / 2, element.width / 2, 0, Math.PI * 2)
+                context.stroke()
+              }
+              break
+
+            case "text":
+              if (element.x !== undefined && element.y !== undefined && element.text) {
+                context.font = "16px Inter, sans-serif"
+                context.fillText(element.text, element.x, element.y)
+              }
+              break
+
+            case "sticker":
+              if (element.x !== undefined && element.y !== undefined && element.stickerType) {
+                context.font = "32px sans-serif"
+                context.fillText(element.stickerType, element.x, element.y)
+              }
+              break
+
+            case "image":
+              if (
+                element.x !== undefined &&
+                element.y !== undefined &&
+                element.width !== undefined &&
+                element.height !== undefined &&
+                element.imageUrl
+              ) {
+                const img = new Image()
+                img.src = element.imageUrl
+                img.crossOrigin = "anonymous"
+                img.onload = () => {
+                  context.drawImage(img, element.x!, element.y!, element.width!, element.height!)
+                }
+              }
+              break
+
+            case "arrow":
+              if (element.points && element.points.length > 1) {
+                const start = element.points[0]
+                const end = element.points[element.points.length - 1]
+
+                // Draw line
+                context.beginPath()
+                context.moveTo(start.x, start.y)
+                context.lineTo(end.x, end.y)
+                context.stroke()
+
+                // Draw arrowhead
+                const angle = Math.atan2(end.y - start.y, end.x - start.x)
+                context.beginPath()
+                context.moveTo(end.x, end.y)
+                context.lineTo(end.x - 15 * Math.cos(angle - Math.PI / 6), end.y - 15 * Math.sin(angle - Math.PI / 6))
+                context.lineTo(end.x - 15 * Math.cos(angle + Math.PI / 6), end.y - 15 * Math.sin(angle + Math.PI / 6))
+                context.closePath()
+                context.fill()
+              }
+              break
+
+            case "note":
+              if (
+                element.x !== undefined &&
+                element.y !== undefined &&
+                element.width !== undefined &&
+                element.height !== undefined &&
+                element.text
+              ) {
+                // Draw sticky note background
+                context.fillStyle = element.color + "80" // Add transparency
+                context.fillRect(element.x, element.y, element.width, element.height)
+
+                // Draw text
+                context.fillStyle = "#000000"
+                context.font = "14px Inter, sans-serif"
+
+                // Wrap text
+                const words = element.text.split(" ")
+                let line = ""
+                const lineHeight = 18
+                let offsetY = 20
+
+                for (let i = 0; i < words.length; i++) {
+                  const testLine = line + words[i] + " "
+                  const metrics = context.measureText(testLine)
+                  const testWidth = metrics.width
+
+                  if (testWidth > element.width - 20 && i > 0) {
+                    context.fillText(line, element.x + 10, element.y + offsetY)
+                    line = words[i] + " "
+                    offsetY += lineHeight
+                  } else {
+                    line = testLine
+                  }
+                }
+
+                context.fillText(line, element.x + 10, element.y + offsetY)
+              }
+              break
           }
-          break
+        })
       }
     })
   }
@@ -832,6 +891,59 @@ export function Brainboard({ boardId }: BrainboardProps) {
     setShowShareDialog(false)
   }
 
+  const handleLayerVisibilityChange = (layerId: string, visible: boolean) => {
+    setLayers(prevLayers =>
+      prevLayers.map(layer =>
+        layer.id === layerId ? { ...layer, visible } : layer
+      )
+    )
+  }
+
+  const handleLayerLockChange = (layerId: string, locked: boolean) => {
+    setLayers(prevLayers =>
+      prevLayers.map(layer =>
+        layer.id === layerId ? { ...layer, locked } : layer
+      )
+    )
+  }
+
+  const handleLayerMove = (layerId: string, direction: 'up' | 'down') => {
+    setLayers(prevLayers => {
+      const newLayers = [...prevLayers]
+      const currentIndex = newLayers.findIndex(layer => layer.id === layerId)
+      const newIndex = direction === 'up' ? currentIndex - 1 : currentIndex + 1
+
+      if (newIndex >= 0 && newIndex < newLayers.length) {
+        const temp = newLayers[currentIndex]
+        newLayers[currentIndex] = newLayers[newIndex]
+        newLayers[newIndex] = temp
+      }
+
+      return newLayers
+    })
+  }
+
+  const handleLayerDelete = (layerId: string) => {
+    if (layers.length > 1) {
+      setLayers(prevLayers => prevLayers.filter(layer => layer.id !== layerId))
+      if (activeLayer === layerId) {
+        setActiveLayer(layers[0].id)
+      }
+    }
+  }
+
+  const handleAddLayer = () => {
+    const newLayer: Layer = {
+      id: Date.now().toString(),
+      name: `Layer ${layers.length + 1}`,
+      visible: true,
+      locked: false,
+      elements: []
+    }
+    setLayers(prevLayers => [...prevLayers, newLayer])
+    setActiveLayer(newLayer.id)
+  }
+
   return (
     <div className="flex flex-col h-[80vh] border rounded-lg overflow-hidden bg-slate-50 dark:bg-slate-950 shadow-lg">
       <div className="flex items-center justify-between p-2 border-b bg-slate-50 dark:bg-slate-950 dark:border-slate-800">
@@ -1162,7 +1274,12 @@ export function Brainboard({ boardId }: BrainboardProps) {
               <TooltipProvider>
                 <Tooltip>
                   <TooltipTrigger asChild>
-                    <Button variant="ghost" size="sm" className="rounded-md">
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      className="rounded-md"
+                      onClick={() => setShowLayers(true)}
+                    >
                       <Layers className="h-4 w-4 mr-1" />
                       <span className="text-xs">Layers</span>
                     </Button>
@@ -1213,6 +1330,16 @@ export function Brainboard({ boardId }: BrainboardProps) {
       {showStickers && <StickersPanel onSelect={handleAddSticker} onClose={() => setShowStickers(false)} />}
       {showImageUploader && <ImageUploader onUpload={handleAddImage} onClose={() => setShowImageUploader(false)} />}
       {showSettings && <SettingsPanel onClose={() => setShowSettings(false)} />}
+      {showLayers && (
+        <LayersPanel
+          layers={layers}
+          onClose={() => setShowLayers(false)}
+          onLayerVisibilityChange={handleLayerVisibilityChange}
+          onLayerLockChange={handleLayerLockChange}
+          onLayerMove={handleLayerMove}
+          onLayerDelete={handleLayerDelete}
+        />
+      )}
     </div>
   )
 }
