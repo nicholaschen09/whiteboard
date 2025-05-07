@@ -1,7 +1,6 @@
 "use client"
 
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { ScrollArea } from "@/components/ui/scroll-area"
 
@@ -21,17 +20,17 @@ interface UserPresenceProps {
 
 export function UserPresence({ users }: UserPresenceProps) {
   return (
-    <Card className="absolute bottom-4 right-4 w-64 shadow-lg border border-slate-200">
-      <CardHeader className="py-3 px-4">
+    <div className="absolute bottom-4 right-4 w-64">
+      <div className="py-3 px-4">
         <div className="flex items-center justify-between">
-          <CardTitle className="text-sm">Collaborators</CardTitle>
+          <h3 className="text-sm font-semibold">Collaborators</h3>
           <Badge variant="outline" className="ml-2 text-xs font-normal">
             {users.filter((u) => u.online).length} online
           </Badge>
         </div>
-      </CardHeader>
-      <CardContent className="py-2 px-4">
-        <ScrollArea className="h-60 pr-4">
+      </div>
+      <div className="py-2 px-4">
+        <div className="h-60 overflow-y-auto pr-4">
           <div className="space-y-3">
             {users.map((user) => (
               <div key={user.id} className="flex items-center gap-3">
@@ -53,8 +52,8 @@ export function UserPresence({ users }: UserPresenceProps) {
               </div>
             ))}
           </div>
-        </ScrollArea>
-      </CardContent>
-    </Card>
+        </div>
+      </div>
+    </div>
   )
 }
