@@ -558,6 +558,7 @@ export function Brainboard({ boardId }: BrainboardProps) {
             case "text":
               if (element.x !== undefined && element.y !== undefined && element.text) {
                 context.font = "16px Inter, sans-serif"
+                context.fillStyle = element.color
                 context.fillText(element.text, element.x, element.y)
               }
               break
@@ -723,8 +724,10 @@ export function Brainboard({ boardId }: BrainboardProps) {
       // Get the center of the canvas for text placement
       const canvas = canvasRef.current
       if (canvas) {
-        const x = canvas.width / 2
-        const y = canvas.height / 2
+        // Convert canvas coordinates to account for device pixel ratio
+        const dpr = window.devicePixelRatio || 1
+        const x = (canvas.width / dpr) / 2
+        const y = (canvas.height / dpr) / 2
 
         const newElement: DrawingElement = {
           id: Date.now().toString(),
@@ -737,6 +740,11 @@ export function Brainboard({ boardId }: BrainboardProps) {
           lineWidth,
         }
         addElement(newElement)
+
+        // Force a redraw of the canvas
+        if (context) {
+          drawElements()
+        }
       }
     }
     setShowTextInput(false)
