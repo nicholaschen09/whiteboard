@@ -26,6 +26,7 @@ import {
   Settings,
   HelpCircle,
   Save,
+  Sparkles,
 } from "lucide-react"
 import { ColorPicker } from "./color-picker"
 import { UserPresence } from "./user-presence"
@@ -47,6 +48,7 @@ import {
 } from "@/components/ui/dialog"
 import { HelpDialog } from "./help-dialog"
 import { Input } from "@/components/ui/input"
+import { AIChat } from "./ai-chat"
 
 // Mock WebSocket connection
 const createMockWebSocket = () => {
@@ -2061,6 +2063,8 @@ export function Brainboard({ boardId }: BrainboardProps) {
     return () => window.removeEventListener('beforeunload', handleBeforeUnload)
   }, [layers, elements, history, historyIndex, activeLayer, currentColor, lineWidth])
 
+  const [showAIChat, setShowAIChat] = useState(false)
+
   return (
     <div className="flex flex-col h-[95vh] border rounded-lg overflow-hidden bg-slate-50 shadow-lg">
       <div className="flex items-center justify-between p-2 border-b bg-slate-50">
@@ -2417,6 +2421,22 @@ export function Brainboard({ boardId }: BrainboardProps) {
                 <Button
                   variant="ghost"
                   size="sm"
+                  onClick={() => setShowAIChat(true)}
+                  className="rounded-md"
+                >
+                  <Sparkles className="h-4 w-4" />
+                </Button>
+              </TooltipTrigger>
+              <TooltipContent>AI Assistant</TooltipContent>
+            </Tooltip>
+          </TooltipProvider>
+
+          <TooltipProvider>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Button
+                  variant="ghost"
+                  size="sm"
                   onClick={handleSave}
                   className="rounded-md"
                 >
@@ -2531,6 +2551,7 @@ export function Brainboard({ boardId }: BrainboardProps) {
           </DialogContent>
         </Dialog>
       )}
+      {showAIChat && <AIChat onClose={() => setShowAIChat(false)} />}
     </div>
   )
 }
