@@ -143,8 +143,8 @@ export function Brainboard({ boardId }: BrainboardProps) {
   const [currentTool, setCurrentTool] = useState<Tool>("pen")
   const [currentColor, setCurrentColor] = useState("#4B5563") // Slate-600 grey color
   const [elements, setElements] = useState<DrawingElement[]>([])
-  const [history, setHistory] = useState<DrawingElement[][]>([])
-  const [historyIndex, setHistoryIndex] = useState(-1)
+  const [history, setHistory] = useState<DrawingElement[][]>([[]])
+  const [historyIndex, setHistoryIndex] = useState(0)
   const [currentElement, setCurrentElement] = useState<DrawingElement | null>(null)
   const [users, setUsers] = useState(initialUsers)
   const [showUsers, setShowUsers] = useState(false)
@@ -946,29 +946,82 @@ export function Brainboard({ boardId }: BrainboardProps) {
     setIsDrawing(false)
   }
 
-  const addElement = (element: DrawingElement) => {
-    // Add to history for undo/redo
-    const newHistory = history.slice(0, historyIndex + 1)
-    const currentElements = [...elements]
-    newHistory.push(currentElements)
-    setHistory(newHistory)
-    setHistoryIndex(newHistory.length - 1)
+  const handleUndo = () => {
+    if (historyIndex > 0) {
+      const newIndex = historyIndex - 1
+      const previousElements = history[newIndex]
 
-    // Add the new element to the active layer
-    setLayers(prevLayers => {
-      return prevLayers.map(layer => {
-        if (layer.id === activeLayer) {
-          return {
-            ...layer,
-            elements: [...layer.elements, element]
-          }
-        }
-        return layer
+      // Batch all state updates together
+      Promise.resolve().then(() => {
+        setHistoryIndex(newIndex)
+        setElements(previousElements)
+        setLayers(prevLayers =>
+          prevLayers.map(layer =>
+            layer.id === activeLayer
+              ? { ...layer, elements: previousElements }
+              : layer
+          )
+        )
       })
+
+      // Force immediate redraw
+      if (context && canvasRef.current) {
+        drawElements()
+      }
+    }
+  }
+
+  const handleRedo = () => {
+    if (historyIndex < history.length - 1) {
+      const newIndex = historyIndex + 1
+      const nextElements = history[newIndex]
+
+      // Batch all state updates together
+      Promise.resolve().then(() => {
+        setHistoryIndex(newIndex)
+        setElements(nextElements)
+        setLayers(prevLayers =>
+          prevLayers.map(layer =>
+            layer.id === activeLayer
+              ? { ...layer, elements: nextElements }
+              : layer
+          )
+        )
+      })
+
+      // Force immediate redraw
+      if (context && canvasRef.current) {
+        drawElements()
+      }
+    }
+  }
+
+  const addElement = (element: DrawingElement) => {
+    // Create new state
+    const updatedElements = [...elements, element]
+
+    // Update history
+    const newHistory = history.slice(0, historyIndex + 1)
+    newHistory.push(updatedElements)
+
+    // Batch all state updates together
+    Promise.resolve().then(() => {
+      setHistory(newHistory)
+      setHistoryIndex(newHistory.length - 1)
+      setElements(updatedElements)
+      setLayers(prevLayers =>
+        prevLayers.map(layer =>
+          layer.id === activeLayer
+            ? { ...layer, elements: updatedElements }
+            : layer
+        )
+      )
     })
 
-    // Update elements state
-    setElements(prevElements => [...prevElements, element])
+    // Force immediate redraw
+    if (context && canvasRef.current) {
+      drawElements()
+    }
 
     // Send to WebSocket if connected
     if (socket && isConnected) {
@@ -982,59 +1035,85 @@ export function Brainboard({ boardId }: BrainboardProps) {
     }
   }
 
-  const handleUndo = () => {
-    if (historyIndex >= 0) {
-      const previousElements = history[historyIndex]
-      if (previousElements) {
-        setElements(previousElements)
-        setHistoryIndex(historyIndex - 1)
-
-        // Update the active layer
-        setLayers(prevLayers =>
-          prevLayers.map(layer =>
-            layer.id === activeLayer
-              ? { ...layer, elements: previousElements }
-              : layer
-          )
-        )
+  // Update the keyboard shortcuts effect to use the latest functions
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'z' && (e.ctrlKey || e.metaKey)) {
+        e.preventDefault()
+        if (e.shiftKey) {
+          handleRedo()
+        } else {
+          handleUndo()
+        }
+      } else if (e.key === 'y' && (e.ctrlKey || e.metaKey)) {
+        e.preventDefault()
+        handleRedo()
       }
     }
-  }
 
-  const handleRedo = () => {
-    if (historyIndex < history.length - 1) {
-      const nextElements = history[historyIndex + 1]
-      if (nextElements) {
-        setElements(nextElements)
-        setHistoryIndex(historyIndex + 1)
+    window.addEventListener('keydown', handleKeyDown)
+    return () => window.removeEventListener('keydown', handleKeyDown)
+  }, [history, historyIndex, elements, activeLayer]) // Add all dependencies
 
-        // Update the active layer
-        setLayers(prevLayers =>
-          prevLayers.map(layer =>
-            layer.id === activeLayer
-              ? { ...layer, elements: nextElements }
-              : layer
-          )
-        )
+  const handleClear = () => {
+    // Create new state
+    const emptyElements: DrawingElement[] = []
+
+    // Update history
+    const newHistory = history.slice(0, historyIndex + 1)
+    newHistory.push(emptyElements)
+
+    // Update all states at once
+    setHistory(newHistory)
+    setHistoryIndex(newHistory.length - 1)
+    setElements(emptyElements)
+    setLayers(prevLayers =>
+      prevLayers.map(layer =>
+        layer.id === activeLayer
+          ? { ...layer, elements: emptyElements }
+          : layer
+      )
+    )
+
+    // Force immediate redraw
+    requestAnimationFrame(() => {
+      if (context && canvasRef.current) {
+        context.clearRect(0, 0, canvasRef.current.width, canvasRef.current.height)
+        if (showGrid) {
+          drawGrid()
+        }
       }
-    }
+    })
   }
 
   const handleEraseBoard = () => {
-    // Clear all layers
+    // Create new state
+    const emptyElements: DrawingElement[] = []
+
+    // Update history
+    const newHistory = history.slice(0, historyIndex + 1)
+    newHistory.push(emptyElements)
+
+    // Update all states at once
+    setHistory(newHistory)
+    setHistoryIndex(newHistory.length - 1)
+    setElements(emptyElements)
     setLayers(prevLayers =>
       prevLayers.map(layer => ({
         ...layer,
-        elements: []
+        elements: emptyElements
       }))
     )
 
-    // Clear elements state
-    setElements([])
-
-    // Clear history
-    setHistory([])
-    setHistoryIndex(-1)
+    // Force immediate redraw
+    requestAnimationFrame(() => {
+      if (context && canvasRef.current) {
+        context.clearRect(0, 0, canvasRef.current.width, canvasRef.current.height)
+        if (showGrid) {
+          drawGrid()
+        }
+      }
+    })
 
     // Clear localStorage
     try {
@@ -1052,41 +1131,6 @@ export function Brainboard({ boardId }: BrainboardProps) {
           userId: 1
         })
       )
-    }
-
-    // Redraw empty canvas
-    if (context && canvasRef.current) {
-      context.clearRect(0, 0, canvasRef.current.width, canvasRef.current.height)
-      if (showGrid) {
-        drawGrid()
-      }
-    }
-  }
-
-  const handleClear = () => {
-    // Add current state to history
-    const newHistory = [...history, [...elements]]
-    setHistory(newHistory)
-    setHistoryIndex(newHistory.length - 1)
-
-    // Clear the canvas
-    setElements([])
-
-    // Update the active layer
-    setLayers(prevLayers =>
-      prevLayers.map(layer =>
-        layer.id === activeLayer
-          ? { ...layer, elements: [] }
-          : layer
-      )
-    )
-
-    // Redraw empty canvas
-    if (context && canvasRef.current) {
-      context.clearRect(0, 0, canvasRef.current.width, canvasRef.current.height)
-      if (showGrid) {
-        drawGrid()
-      }
     }
   }
 
@@ -1919,13 +1963,13 @@ export function Brainboard({ boardId }: BrainboardProps) {
                   variant="ghost"
                   size="sm"
                   onClick={handleUndo}
-                  disabled={historyIndex < 0}
+                  disabled={historyIndex <= 0}
                   className="rounded-md"
                 >
                   <Undo className="h-4 w-4" />
                 </Button>
               </TooltipTrigger>
-              <TooltipContent>Undo</TooltipContent>
+              <TooltipContent>Undo (Ctrl+Z)</TooltipContent>
             </Tooltip>
           </TooltipProvider>
 
@@ -1942,7 +1986,7 @@ export function Brainboard({ boardId }: BrainboardProps) {
                   <Redo className="h-4 w-4" />
                 </Button>
               </TooltipTrigger>
-              <TooltipContent>Redo</TooltipContent>
+              <TooltipContent>Redo (Ctrl+Y)</TooltipContent>
             </Tooltip>
           </TooltipProvider>
 
