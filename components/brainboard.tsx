@@ -178,10 +178,27 @@ export function Brainboard({ boardId }: BrainboardProps) {
   const [selectedElement, setSelectedElement] = useState<DrawingElement | null>(null)
   const [isDragging, setIsDragging] = useState(false)
   const [dragOffset, setDragOffset] = useState({ x: 0, y: 0 })
+  const [isResizing, setIsResizing] = useState(false)
+  const [resizeDirection, setResizeDirection] = useState<'nw' | 'ne' | 'sw' | 'se' | null>(null)
+  const [originalSize, setOriginalSize] = useState<{ width: number; height: number } | null>(null)
 
   // Add temporary canvas ref
   const tempCanvasRef = useRef<HTMLCanvasElement>(null)
   const [tempContext, setTempContext] = useState<CanvasRenderingContext2D | null>(null)
+
+  // Add image cache state
+  const [imageCache, setImageCache] = useState<{ [key: string]: HTMLImageElement }>({})
+
+  // Add function to preload image
+  const preloadImage = (imageUrl: string) => {
+    if (imageCache[imageUrl]) return imageCache[imageUrl]
+
+    const img = new Image()
+    img.src = imageUrl
+    img.crossOrigin = "anonymous"
+    setImageCache(prev => ({ ...prev, [imageUrl]: img }))
+    return img
+  }
 
   // Load saved data on initial render
   useEffect(() => {
@@ -663,23 +680,40 @@ export function Brainboard({ boardId }: BrainboardProps) {
                 element.height !== undefined &&
                 element.imageUrl
               ) {
-                const img = new Image()
-                img.src = element.imageUrl
-                img.crossOrigin = "anonymous"
-                img.onload = () => {
-                  context.drawImage(img, element.x!, element.y!, element.width!, element.height!)
-                }
+                const img = imageCache[element.imageUrl] || preloadImage(element.imageUrl)
 
-                // Draw selection indicator if this element is selected
-                if (selectedElement && selectedElement.id === element.id) {
-                  context.strokeStyle = "#3b82f6"
-                  context.lineWidth = 1
-                  context.strokeRect(
-                    element.x - 2,
-                    element.y - 2,
-                    element.width + 4,
-                    element.height + 4
-                  )
+                if (img.complete) {
+                  context.drawImage(img, element.x, element.y, element.width, element.height)
+
+                  // Draw selection indicator if this element is selected
+                  if (selectedElement && selectedElement.id === element.id) {
+                    context.strokeStyle = "#3b82f6"
+                    context.lineWidth = 1
+                    context.strokeRect(
+                      element.x - 2,
+                      element.y - 2,
+                      element.width + 4,
+                      element.height + 4
+                    )
+
+                    // Draw resize handles
+                    const handleSize = 8
+                    context.fillStyle = "#3b82f6"
+                    // Top-left
+                    context.fillRect(element.x - handleSize / 2, element.y - handleSize / 2, handleSize, handleSize)
+                    // Top-right
+                    context.fillRect(element.x + element.width - handleSize / 2, element.y - handleSize / 2, handleSize, handleSize)
+                    // Bottom-left
+                    context.fillRect(element.x - handleSize / 2, element.y + element.height - handleSize / 2, handleSize, handleSize)
+                    // Bottom-right
+                    context.fillRect(element.x + element.width - handleSize / 2, element.y + element.height - handleSize / 2, handleSize, handleSize)
+                  }
+                } else {
+                  img.onload = () => {
+                    if (context && canvasRef.current) {
+                      drawElements()
+                    }
+                  }
                 }
               }
               break
@@ -845,6 +879,25 @@ export function Brainboard({ boardId }: BrainboardProps) {
           case "note":
             if (element.x !== undefined && element.y !== undefined &&
               element.width !== undefined && element.height !== undefined) {
+              // Check if click is on resize handle
+              const handleSize = 8
+              const isOnResizeHandle =
+                (x >= element.x + element.width - handleSize && x <= element.x + element.width + handleSize &&
+                  y >= element.y + element.height - handleSize && y <= element.y + element.height + handleSize) ? 'se' :
+                  (x >= element.x - handleSize && x <= element.x + handleSize &&
+                    y >= element.y - handleSize && y <= element.y + handleSize) ? 'nw' :
+                    (x >= element.x + element.width - handleSize && x <= element.x + element.width + handleSize &&
+                      y >= element.y - handleSize && y <= element.y + handleSize) ? 'ne' :
+                      (x >= element.x - handleSize && x <= element.x + handleSize &&
+                        y >= element.y + element.height - handleSize && y <= element.y + element.height + handleSize) ? 'sw' : null
+
+              if (isOnResizeHandle) {
+                setIsResizing(true)
+                setResizeDirection(isOnResizeHandle)
+                setOriginalSize({ width: element.width, height: element.height })
+                return true
+              }
+
               return x >= element.x && x <= element.x + element.width &&
                 y >= element.y && y <= element.y + element.height
             }
@@ -946,7 +999,7 @@ export function Brainboard({ boardId }: BrainboardProps) {
     setTextInputValue("")
   }
 
-  // Update handleMouseMove to remove eraser handling
+  // Update handleMouseMove to use requestAnimationFrame more efficiently
   const handleMouseMove = (e: React.MouseEvent<HTMLCanvasElement>) => {
     if (!canvasRef.current) return
 
@@ -965,20 +1018,82 @@ export function Brainboard({ boardId }: BrainboardProps) {
     // Update current user position
     setUsers((prevUsers) => prevUsers.map((user) => (user.id === 1 ? { ...user, x, y } : user)))
 
+    // Handle resizing
+    if (isResizing && selectedElement && originalSize) {
+      const element = selectedElement
+      let newWidth = originalSize.width
+      let newHeight = originalSize.height
+      let newX = element.x
+      let newY = element.y
+
+      switch (resizeDirection) {
+        case 'se':
+          newWidth = Math.max(20, x - (element.x || 0))
+          newHeight = Math.max(20, y - (element.y || 0))
+          break
+        case 'sw':
+          newWidth = Math.max(20, (element.x || 0) + (element.width || 0) - x)
+          newHeight = Math.max(20, y - (element.y || 0))
+          newX = x
+          break
+        case 'ne':
+          newWidth = Math.max(20, x - (element.x || 0))
+          newHeight = Math.max(20, (element.y || 0) + (element.height || 0) - y)
+          newY = y
+          break
+        case 'nw':
+          newWidth = Math.max(20, (element.x || 0) + (element.width || 0) - x)
+          newHeight = Math.max(20, (element.y || 0) + (element.height || 0) - y)
+          newX = x
+          newY = y
+          break
+      }
+
+      // Batch state updates
+      requestAnimationFrame(() => {
+        setElements(prevElements =>
+          prevElements.map(el =>
+            el.id === selectedElement.id
+              ? { ...el, x: newX, y: newY, width: newWidth, height: newHeight }
+              : el
+          )
+        )
+
+        setLayers(prevLayers =>
+          prevLayers.map(layer =>
+            layer.id === activeLayer
+              ? {
+                ...layer,
+                elements: layer.elements.map(el =>
+                  el.id === selectedElement.id
+                    ? { ...el, x: newX, y: newY, width: newWidth, height: newHeight }
+                    : el
+                )
+              }
+              : layer
+          )
+        )
+
+        if (context) {
+          drawElements()
+        }
+      })
+      return
+    }
+
     // Handle dragging selected element
     if (isDragging && selectedElement) {
       const newX = x - dragOffset.x
       const newY = y - dragOffset.y
 
-      // Update the element's position
-      setElements(prevElements =>
-        prevElements.map(element =>
+      // Update state and redraw in a single animation frame
+      requestAnimationFrame(() => {
+        const updatedElements = elements.map(element =>
           element.id === selectedElement.id
             ? {
               ...element,
               x: newX,
               y: newY,
-              // For pen and arrow elements, update all points
               points: element.points?.map(point => ({
                 x: point.x + (newX - (element.x || 0)),
                 y: point.y + (newY - (element.y || 0))
@@ -986,37 +1101,20 @@ export function Brainboard({ boardId }: BrainboardProps) {
             }
             : element
         )
-      )
 
-      // Update the layer's elements
-      setLayers(prevLayers =>
-        prevLayers.map(layer =>
-          layer.id === activeLayer
-            ? {
-              ...layer,
-              elements: layer.elements.map(element =>
-                element.id === selectedElement.id
-                  ? {
-                    ...element,
-                    x: newX,
-                    y: newY,
-                    // For pen and arrow elements, update all points
-                    points: element.points?.map(point => ({
-                      x: point.x + (newX - (element.x || 0)),
-                      y: point.y + (newY - (element.y || 0))
-                    }))
-                  }
-                  : element
-              )
-            }
-            : layer
+        setElements(updatedElements)
+        setLayers(prevLayers =>
+          prevLayers.map(layer =>
+            layer.id === activeLayer
+              ? { ...layer, elements: updatedElements }
+              : layer
+          )
         )
-      )
 
-      // Redraw the canvas
-      if (context) {
-        drawElements()
-      }
+        if (context) {
+          drawElements()
+        }
+      })
       return
     }
 
@@ -1131,9 +1229,13 @@ export function Brainboard({ boardId }: BrainboardProps) {
   const handleMouseUp = () => {
     if (isDragging) {
       setIsDragging(false)
-      setSelectedElement(null)
+      // Don't clear selection on mouse up
     }
-
+    if (isResizing) {
+      setIsResizing(false)
+      setResizeDirection(null)
+      setOriginalSize(null)
+    }
     if (!isDrawing || !currentElement) return
 
     addElement(currentElement)
@@ -1522,11 +1624,14 @@ export function Brainboard({ boardId }: BrainboardProps) {
     if (!canvasRef.current) return
 
     const canvas = canvasRef.current
+    const rect = canvas.getBoundingClientRect()
 
-    // Use the stored position from when the image tool was selected
-    // Or default to center if not available
-    const x = currentPosition ? currentPosition.x - 100 : canvas.width / 2 - 100
-    const y = currentPosition ? currentPosition.y - 100 : canvas.height / 2 - 100
+    // Calculate center position
+    const x = (rect.width / 2) - 100 // Half of default image width
+    const y = (rect.height / 2) - 100 // Half of default image height
+
+    // Preload the image
+    preloadImage(imageUrl)
 
     const newElement: DrawingElement = {
       id: Date.now().toString(),
@@ -1542,8 +1647,6 @@ export function Brainboard({ boardId }: BrainboardProps) {
 
     addElement(newElement)
     setShowImageUploader(false)
-    // Reset current position
-    setCurrentPosition(null)
   }
 
   const handleShare = (emails: string[], shareLink: string, boardId: string) => {
