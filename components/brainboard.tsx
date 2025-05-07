@@ -164,6 +164,11 @@ export function Brainboard({ boardId }: BrainboardProps) {
   const [showGrid, setShowGrid] = useState(false)
   const [snapToGrid, setSnapToGrid] = useState(false)
   const GRID_SIZE = 20 // Size of grid cells in pixels
+  const [eraserSize, setEraserSize] = useState(10) // Default eraser size
+
+  // Add temporary canvas ref
+  const tempCanvasRef = useRef<HTMLCanvasElement>(null)
+  const [tempContext, setTempContext] = useState<CanvasRenderingContext2D | null>(null)
 
   // Save elements to localStorage whenever they change
   useEffect(() => {
@@ -575,9 +580,9 @@ export function Brainboard({ boardId }: BrainboardProps) {
     }
   }
 
-  // Add function to check if a point is near an element
+  // Update isPointNearElement to use eraser size
   const isPointNearElement = (x: number, y: number, element: DrawingElement) => {
-    const threshold = 10 // Distance threshold for erasing
+    const threshold = currentTool === "eraser" ? eraserSize : 10 // Use eraser size when erasing
 
     switch (element.type) {
       case "pen":
@@ -593,8 +598,13 @@ export function Brainboard({ boardId }: BrainboardProps) {
       case "rectangle":
         if (element.x !== undefined && element.y !== undefined &&
           element.width !== undefined && element.height !== undefined) {
-          return x >= element.x && x <= element.x + element.width &&
-            y >= element.y && y <= element.y + element.height
+          // Expand the rectangle by the eraser size
+          const expandedX = element.x - threshold
+          const expandedY = element.y - threshold
+          const expandedWidth = element.width + threshold * 2
+          const expandedHeight = element.height + threshold * 2
+          return x >= expandedX && x <= expandedX + expandedWidth &&
+            y >= expandedY && y <= expandedY + expandedHeight
         }
         return false
 
@@ -602,7 +612,7 @@ export function Brainboard({ boardId }: BrainboardProps) {
         if (element.x !== undefined && element.y !== undefined && element.width !== undefined) {
           const centerX = element.x + element.width / 2
           const centerY = element.y + element.width / 2
-          const radius = element.width / 2
+          const radius = element.width / 2 + threshold // Add threshold to radius
           const dx = x - centerX
           const dy = y - centerY
           return Math.sqrt(dx * dx + dy * dy) <= radius
@@ -620,8 +630,13 @@ export function Brainboard({ boardId }: BrainboardProps) {
       case "note":
         if (element.x !== undefined && element.y !== undefined &&
           element.width !== undefined && element.height !== undefined) {
-          return x >= element.x && x <= element.x + element.width &&
-            y >= element.y && y <= element.y + element.height
+          // Expand the area by the eraser size
+          const expandedX = element.x - threshold
+          const expandedY = element.y - threshold
+          const expandedWidth = element.width + threshold * 2
+          const expandedHeight = element.height + threshold * 2
+          return x >= expandedX && x <= expandedX + expandedWidth &&
+            y >= expandedY && y <= expandedY + expandedHeight
         }
         return false
 
@@ -630,7 +645,39 @@ export function Brainboard({ boardId }: BrainboardProps) {
     }
   }
 
-  // Update handleMouseDown to handle eraser
+  // Simplify the eraser logic to be more consistent
+  const handleErasing = (x: number, y: number) => {
+    // Get the current active layer
+    const currentLayer = layers.find(layer => layer.id === activeLayer)
+    if (!currentLayer) return
+
+    // Create a new array of elements, removing any that intersect with the eraser
+    const newElements = currentLayer.elements.filter(element => {
+      if (element.type === "pen" && element.points) {
+        // For pen strokes, check if any point is within eraser range
+        return !element.points.some(point => {
+          const dx = point.x - x
+          const dy = point.y - y
+          return Math.sqrt(dx * dx + dy * dy) < eraserSize
+        })
+      } else {
+        // For other elements, use the existing check
+        return !isPointNearElement(x, y, element)
+      }
+    })
+
+    // Update the active layer with new elements
+    const updatedLayers = layers.map(layer =>
+      layer.id === activeLayer
+        ? { ...layer, elements: newElements }
+        : layer
+    )
+
+    setLayers(updatedLayers)
+    setElements(newElements)
+  }
+
+  // Update handleMouseDown to handle eraser consistently
   const handleMouseDown = (e: React.MouseEvent<HTMLCanvasElement>) => {
     if (!canvasRef.current) return
 
@@ -653,18 +700,7 @@ export function Brainboard({ boardId }: BrainboardProps) {
     setUsers((prevUsers) => prevUsers.map((user) => (user.id === 1 ? { ...user, x, y } : user)))
 
     if (currentTool === "eraser" as Tool) {
-      // Find and remove elements that intersect with the eraser point
-      const updatedLayers = layers.map(layer => ({
-        ...layer,
-        elements: layer.elements.filter(element => !isPointNearElement(x, y, element))
-      }))
-      setLayers(updatedLayers)
-
-      // Update elements state to match the active layer
-      const currentActiveLayer = updatedLayers.find(layer => layer.id === activeLayer)
-      if (currentActiveLayer) {
-        setElements(currentActiveLayer.elements)
-      }
+      handleErasing(x, y)
       return
     }
 
@@ -734,7 +770,7 @@ export function Brainboard({ boardId }: BrainboardProps) {
     setCurrentElement(newElement)
   }
 
-  // Update handleMouseMove to handle eraser
+  // Update handleMouseMove to not handle erasing
   const handleMouseMove = (e: React.MouseEvent<HTMLCanvasElement>) => {
     if (!canvasRef.current) return
 
@@ -754,23 +790,8 @@ export function Brainboard({ boardId }: BrainboardProps) {
     // Update current user position
     setUsers((prevUsers) => prevUsers.map((user) => (user.id === 1 ? { ...user, x, y } : user)))
 
-    if (!isDrawing) return
-
-    if (currentTool === "eraser" as Tool) {
-      // Find and remove elements that intersect with the eraser point
-      const updatedLayers = layers.map(layer => ({
-        ...layer,
-        elements: layer.elements.filter(element => !isPointNearElement(x, y, element))
-      }))
-      setLayers(updatedLayers)
-
-      // Update elements state to match the active layer
-      const currentActiveLayer = updatedLayers.find(layer => layer.id === activeLayer)
-      if (currentActiveLayer) {
-        setElements(currentActiveLayer.elements)
-      }
-      return
-    }
+    // Don't handle erasing in mouse move
+    if (currentTool === "eraser" as Tool) return
 
     // If not drawing, just update cursor position and return
     if (!isDrawing || !currentElement) return
@@ -1375,6 +1396,21 @@ export function Brainboard({ boardId }: BrainboardProps) {
                 />
                 <span className="text-xs text-slate-500 w-4">{lineWidth}</span>
               </div>
+
+              {currentTool === "eraser" && (
+                <div className="flex items-center space-x-1 ml-2">
+                  <span className="text-xs text-slate-500">Eraser:</span>
+                  <input
+                    type="range"
+                    min="5"
+                    max="50"
+                    value={eraserSize}
+                    onChange={(e) => setEraserSize(Number.parseInt(e.target.value))}
+                    className="w-20"
+                  />
+                  <span className="text-xs text-slate-500 w-4">{eraserSize}</span>
+                </div>
+              )}
             </div>
           </TabsContent>
 
