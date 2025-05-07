@@ -1700,7 +1700,7 @@ export function Brainboard({ boardId }: BrainboardProps) {
                   className="rounded-md relative"
                 >
                   <Users className="h-4 w-4" />
-                  <span className="absolute -top-1 -right-1 bg-primary text-primary-foreground rounded-full w-4 h-4 text-[10px] flex items-center justify-center">
+                  <span className="absolute top-0.5 -right-0.5 bg-primary text-primary-foreground rounded-full w-4 h-4 text-[10px] flex items-center justify-center">
                     {users.filter((u) => u.online).length}
                   </span>
                 </Button>
