@@ -504,7 +504,7 @@ export function Brainboard({ boardId }: BrainboardProps) {
     context.restore()
   }
 
-  // Update drawElements to ensure grid is drawn correctly
+  // Update drawElements to show selection indicator for all element types
   const drawElements = () => {
     if (!context || !canvasRef.current) return
 
@@ -529,12 +529,36 @@ export function Brainboard({ boardId }: BrainboardProps) {
               if (element.points && element.points.length > 0) {
                 context.beginPath()
                 context.moveTo(element.points[0].x, element.points[0].y)
-
-                element.points.forEach((point) => {
+                element.points.forEach(point => {
                   context.lineTo(point.x, point.y)
                 })
-
                 context.stroke()
+
+                // Draw selection indicator if this element is selected
+                if (selectedElement && selectedElement.id === element.id) {
+                  const bounds = element.points.reduce(
+                    (acc, point) => ({
+                      minX: Math.min(acc.minX, point.x),
+                      minY: Math.min(acc.minY, point.y),
+                      maxX: Math.max(acc.maxX, point.x),
+                      maxY: Math.max(acc.maxY, point.y)
+                    }),
+                    {
+                      minX: element.points[0].x,
+                      minY: element.points[0].y,
+                      maxX: element.points[0].x,
+                      maxY: element.points[0].y
+                    }
+                  )
+                  context.strokeStyle = "#3b82f6"
+                  context.lineWidth = 1
+                  context.strokeRect(
+                    bounds.minX - 2,
+                    bounds.minY - 2,
+                    bounds.maxX - bounds.minX + 4,
+                    bounds.maxY - bounds.minY + 4
+                  )
+                }
               }
               break
 
@@ -548,6 +572,18 @@ export function Brainboard({ boardId }: BrainboardProps) {
                 context.beginPath()
                 context.rect(element.x, element.y, element.width, element.height)
                 context.stroke()
+
+                // Draw selection indicator if this element is selected
+                if (selectedElement && selectedElement.id === element.id) {
+                  context.strokeStyle = "#3b82f6"
+                  context.lineWidth = 1
+                  context.strokeRect(
+                    element.x - 2,
+                    element.y - 2,
+                    element.width + 4,
+                    element.height + 4
+                  )
+                }
               }
               break
 
@@ -560,10 +596,21 @@ export function Brainboard({ boardId }: BrainboardProps) {
                 const centerX = element.x + element.width / 2
                 const centerY = element.y + element.width / 2
                 const radius = element.width / 2
-
                 context.beginPath()
                 context.arc(centerX, centerY, radius, 0, Math.PI * 2)
                 context.stroke()
+
+                // Draw selection indicator if this element is selected
+                if (selectedElement && selectedElement.id === element.id) {
+                  context.strokeStyle = "#3b82f6"
+                  context.lineWidth = 1
+                  context.strokeRect(
+                    centerX - radius - 2,
+                    centerY - radius - 2,
+                    radius * 2 + 4,
+                    radius * 2 + 4
+                  )
+                }
               }
               break
 
@@ -575,9 +622,9 @@ export function Brainboard({ boardId }: BrainboardProps) {
 
                 // Draw selection indicator if this element is selected
                 if (selectedElement && selectedElement.id === element.id) {
+                  const metrics = context.measureText(element.text)
                   context.strokeStyle = "#3b82f6" // Blue color for selection
                   context.lineWidth = 1
-                  const metrics = context.measureText(element.text)
                   context.strokeRect(
                     element.x - 2,
                     element.y - 16,
@@ -592,6 +639,19 @@ export function Brainboard({ boardId }: BrainboardProps) {
               if (element.x !== undefined && element.y !== undefined && element.stickerType) {
                 context.font = "32px sans-serif"
                 context.fillText(element.stickerType, element.x, element.y)
+
+                // Draw selection indicator if this element is selected
+                if (selectedElement && selectedElement.id === element.id) {
+                  const metrics = context.measureText(element.stickerType)
+                  context.strokeStyle = "#3b82f6"
+                  context.lineWidth = 1
+                  context.strokeRect(
+                    element.x - 2,
+                    element.y - 32,
+                    metrics.width + 4,
+                    36
+                  )
+                }
               }
               break
 
@@ -608,6 +668,18 @@ export function Brainboard({ boardId }: BrainboardProps) {
                 img.crossOrigin = "anonymous"
                 img.onload = () => {
                   context.drawImage(img, element.x!, element.y!, element.width!, element.height!)
+                }
+
+                // Draw selection indicator if this element is selected
+                if (selectedElement && selectedElement.id === element.id) {
+                  context.strokeStyle = "#3b82f6"
+                  context.lineWidth = 1
+                  context.strokeRect(
+                    element.x - 2,
+                    element.y - 2,
+                    element.width + 4,
+                    element.height + 4
+                  )
                 }
               }
               break
@@ -631,6 +703,32 @@ export function Brainboard({ boardId }: BrainboardProps) {
                 context.lineTo(end.x - 15 * Math.cos(angle + Math.PI / 6), end.y - 15 * Math.sin(angle + Math.PI / 6))
                 context.closePath()
                 context.fill()
+
+                // Draw selection indicator if this element is selected
+                if (selectedElement && selectedElement.id === element.id) {
+                  const bounds = element.points.reduce(
+                    (acc, point) => ({
+                      minX: Math.min(acc.minX, point.x),
+                      minY: Math.min(acc.minY, point.y),
+                      maxX: Math.max(acc.maxX, point.x),
+                      maxY: Math.max(acc.maxY, point.y)
+                    }),
+                    {
+                      minX: element.points[0].x,
+                      minY: element.points[0].y,
+                      maxX: element.points[0].x,
+                      maxY: element.points[0].y
+                    }
+                  )
+                  context.strokeStyle = "#3b82f6"
+                  context.lineWidth = 1
+                  context.strokeRect(
+                    bounds.minX - 2,
+                    bounds.minY - 2,
+                    bounds.maxX - bounds.minX + 4,
+                    bounds.maxY - bounds.minY + 4
+                  )
+                }
               }
               break
 
@@ -671,6 +769,18 @@ export function Brainboard({ boardId }: BrainboardProps) {
                 }
 
                 context.fillText(line, element.x + 10, element.y + offsetY)
+
+                // Draw selection indicator if this element is selected
+                if (selectedElement && selectedElement.id === element.id) {
+                  context.strokeStyle = "#3b82f6"
+                  context.lineWidth = 1
+                  context.strokeRect(
+                    element.x - 2,
+                    element.y - 2,
+                    element.width + 4,
+                    element.height + 4
+                  )
+                }
               }
               break
           }
@@ -719,15 +829,41 @@ export function Brainboard({ boardId }: BrainboardProps) {
     if (currentTool === "select") {
       // Check if we clicked on any element
       const clickedElement = elements.find(element => {
-        if (element.type === "text") {
-          // For text elements, check if click is near the text position
-          if (element.x !== undefined && element.y !== undefined) {
-            const dx = x - element.x
-            const dy = y - element.y
-            return Math.sqrt(dx * dx + dy * dy) < 20 // 20px click radius
-          }
+        switch (element.type) {
+          case "text":
+          case "sticker":
+            if (element.x !== undefined && element.y !== undefined) {
+              const dx = x - element.x
+              const dy = y - element.y
+              return Math.sqrt(dx * dx + dy * dy) < 20 // 20px click radius
+            }
+            return false
+
+          case "rectangle":
+          case "circle":
+          case "image":
+          case "note":
+            if (element.x !== undefined && element.y !== undefined &&
+              element.width !== undefined && element.height !== undefined) {
+              return x >= element.x && x <= element.x + element.width &&
+                y >= element.y && y <= element.y + element.height
+            }
+            return false
+
+          case "pen":
+          case "arrow":
+            if (element.points) {
+              return element.points.some(point => {
+                const dx = x - point.x
+                const dy = y - point.y
+                return Math.sqrt(dx * dx + dy * dy) < 10 // 10px click radius
+              })
+            }
+            return false
+
+          default:
+            return false
         }
-        return false
       })
 
       if (clickedElement) {
@@ -838,7 +974,16 @@ export function Brainboard({ boardId }: BrainboardProps) {
       setElements(prevElements =>
         prevElements.map(element =>
           element.id === selectedElement.id
-            ? { ...element, x: newX, y: newY }
+            ? {
+              ...element,
+              x: newX,
+              y: newY,
+              // For pen and arrow elements, update all points
+              points: element.points?.map(point => ({
+                x: point.x + (newX - (element.x || 0)),
+                y: point.y + (newY - (element.y || 0))
+              }))
+            }
             : element
         )
       )
@@ -851,7 +996,16 @@ export function Brainboard({ boardId }: BrainboardProps) {
               ...layer,
               elements: layer.elements.map(element =>
                 element.id === selectedElement.id
-                  ? { ...element, x: newX, y: newY }
+                  ? {
+                    ...element,
+                    x: newX,
+                    y: newY,
+                    // For pen and arrow elements, update all points
+                    points: element.points?.map(point => ({
+                      x: point.x + (newX - (element.x || 0)),
+                      y: point.y + (newY - (element.y || 0))
+                    }))
+                  }
                   : element
               )
             }
