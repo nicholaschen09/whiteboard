@@ -658,7 +658,7 @@ export function Brainboard({ boardId }: BrainboardProps) {
     }
   }
 
-  // Update handleMouseDown to remove image handling since we'll handle it directly
+  // Update handleMouseDown to remove sticker handling since we'll handle it directly
   const handleMouseDown = (e: React.MouseEvent<HTMLCanvasElement>) => {
     if (!canvasRef.current) return
 
@@ -714,12 +714,6 @@ export function Brainboard({ boardId }: BrainboardProps) {
           newElement.text = text
           addElement(newElement)
         }
-        return
-
-      case "sticker":
-        setShowStickers(true)
-        // Store current position for later use when sticker is selected
-        setCurrentPosition({ x, y })
         return
 
       case "select":
@@ -1629,7 +1623,10 @@ export function Brainboard({ boardId }: BrainboardProps) {
                 <Button
                   variant="ghost"
                   size="sm"
-                  onClick={() => setCurrentTool("sticker")}
+                  onClick={() => {
+                    setCurrentTool("sticker")
+                    setShowStickers(true)
+                  }}
                   className={cn("rounded-md", currentTool === "sticker" && "bg-slate-200 hover:bg-slate-300")}
                 >
                   <Sticker className="h-4 w-4" />
