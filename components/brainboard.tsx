@@ -1384,7 +1384,7 @@ export function Brainboard({ boardId }: BrainboardProps) {
                 <Tooltip>
                   <TooltipTrigger asChild>
                     <Button variant="ghost" size="icon" onClick={handleEraseBoard} className="rounded-md">
-                      <Trash2 className="h-4 w-4 text-red-500" />
+                      <Trash2 className="h-4 w-4" />
                     </Button>
                   </TooltipTrigger>
                   <TooltipContent>Erase Board</TooltipContent>
@@ -1422,7 +1422,7 @@ export function Brainboard({ boardId }: BrainboardProps) {
                       variant={showUsers ? "default" : "ghost"}
                       size="icon"
                       onClick={() => setShowUsers(!showUsers)}
-                      className={cn("rounded-md relative", isConnected ? "text-green-600" : "text-amber-600")}
+                      className="rounded-md relative"
                     >
                       <Users className="h-4 w-4" />
                       <span className="absolute -top-1 -right-1 bg-primary text-primary-foreground rounded-full w-4 h-4 text-[10px] flex items-center justify-center">
@@ -1696,7 +1696,20 @@ export function Brainboard({ boardId }: BrainboardProps) {
           ))}
       </div>
 
-      {showUsers && <UserPresence users={users} />}
+      {showUsers && (
+        <div className="absolute top-16 right-2 z-50 bg-white rounded-lg shadow-lg border p-4 min-w-[200px]">
+          <div className="space-y-2">
+            <h3 className="font-medium mb-2">Connected Users</h3>
+            {users.map((user) => (
+              <div key={user.id} className="flex items-center space-x-2">
+                <div className="w-2 h-2 rounded-full" style={{ backgroundColor: user.color }} />
+                <span className="text-sm">{user.name}</span>
+                {user.online && <span className="text-xs text-green-500">• Online</span>}
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
       {showShareDialog && <ShareDialog onShare={handleShare} onCancel={() => setShowShareDialog(false)} />}
       {showStickers && <StickersPanel onSelect={handleAddSticker} onClose={() => setShowStickers(false)} />}
       {showImageUploader && <ImageUploader onUpload={handleAddImage} onClose={() => setShowImageUploader(false)} />}
