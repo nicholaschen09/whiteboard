@@ -7,16 +7,61 @@ import { Palette, Check } from "lucide-react"
 import { cn } from "@/lib/utils"
 
 const COLORS = [
+  // Reds
+  "#FF0000", // Pure Red
+  "#FF3333", // Light Red
+  "#CC0000", // Dark Red
+  "#FF6666", // Pink Red
+
+  // Oranges
+  "#FF6600", // Pure Orange
+  "#FF8533", // Light Orange
+  "#CC5200", // Dark Orange
+  "#FF9966", // Peach
+
+  // Yellows
+  "#FFCC00", // Pure Yellow
+  "#FFD633", // Light Yellow
+  "#CC9900", // Dark Yellow
+  "#FFE066", // Pale Yellow
+
+  // Greens
+  "#00CC00", // Pure Green
+  "#33CC33", // Light Green
+  "#009900", // Dark Green
+  "#66CC66", // Mint Green
+
+  // Teals
+  "#00CCCC", // Pure Teal
+  "#33CCCC", // Light Teal
+  "#009999", // Dark Teal
+  "#66CCCC", // Pale Teal
+
+  // Blues
+  "#0066FF", // Pure Blue
+  "#3385FF", // Light Blue
+  "#0047B3", // Dark Blue
+  "#6699FF", // Sky Blue
+
+  // Purples
+  "#6600CC", // Pure Purple
+  "#8533CC", // Light Purple
+  "#4D0099", // Dark Purple
+  "#9966CC", // Lavender
+
+  // Pinks
+  "#FF00CC", // Pure Pink
+  "#FF33CC", // Light Pink
+  "#CC0099", // Dark Pink
+  "#FF66CC", // Pale Pink
+
+  // Monochrome
   "#000000", // Black
-  "#4f46e5", // Indigo
-  "#ef4444", // Red
-  "#f97316", // Orange
-  "#eab308", // Yellow
-  "#22c55e", // Green
-  "#06b6d4", // Cyan
-  "#3b82f6", // Blue
-  "#a855f7", // Purple
-  "#ec4899", // Pink
+  "#333333", // Dark Gray
+  "#666666", // Medium Gray
+  "#999999", // Light Gray
+  "#CCCCCC", // Silver
+  "#FFFFFF", // White
 ]
 
 interface ColorPickerProps {
