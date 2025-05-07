@@ -438,14 +438,14 @@ export function Brainboard({ boardId }: BrainboardProps) {
     }
   }, [showGrid, snapToGrid]) // Add grid settings to dependencies
 
-  // Update drawGrid function to make lines thinner and more transparent
+  // Update drawGrid function to make grid more visible
   const drawGrid = () => {
     if (!context || !canvasRef.current || !showGrid) return
 
     const canvas = canvasRef.current
     context.save()
-    context.strokeStyle = 'rgba(229, 231, 235, 0.3)' // Light grey color with transparency
-    context.lineWidth = 0.5 // Make lines thinner
+    context.strokeStyle = 'rgba(229, 231, 235, 0.8)' // Light grey color with less transparency
+    context.lineWidth = 1 // Make lines more visible
 
     // Draw vertical lines
     for (let x = 0; x <= canvas.width; x += GRID_SIZE) {
@@ -474,7 +474,9 @@ export function Brainboard({ boardId }: BrainboardProps) {
     context.clearRect(0, 0, canvas.width, canvas.height)
 
     // Draw grid first
-    drawGrid()
+    if (showGrid) {
+      drawGrid()
+    }
 
     // Draw elements from all visible layers
     layers.forEach(layer => {
@@ -900,9 +902,161 @@ export function Brainboard({ boardId }: BrainboardProps) {
   const handleDownload = () => {
     if (!canvasRef.current) return
 
+    // Create a temporary canvas for the download
+    const tempCanvas = document.createElement('canvas')
+    const tempCtx = tempCanvas.getContext('2d')
+    if (!tempCtx) return
+
+    // Set the temporary canvas size to match the original
+    tempCanvas.width = canvasRef.current.width
+    tempCanvas.height = canvasRef.current.height
+
+    // Draw all elements except the grid
+    tempCtx.save()
+    layers.forEach(layer => {
+      if (layer.visible) {
+        layer.elements.forEach(element => {
+          tempCtx.strokeStyle = element.color
+          tempCtx.fillStyle = element.color
+          tempCtx.lineWidth = element.lineWidth || 2
+
+          switch (element.type) {
+            case "pen":
+              if (element.points && element.points.length > 0) {
+                tempCtx.beginPath()
+                tempCtx.moveTo(element.points[0].x, element.points[0].y)
+
+                element.points.forEach((point) => {
+                  tempCtx.lineTo(point.x, point.y)
+                })
+
+                tempCtx.stroke()
+              }
+              break
+
+            case "rectangle":
+              if (
+                element.x !== undefined &&
+                element.y !== undefined &&
+                element.width !== undefined &&
+                element.height !== undefined
+              ) {
+                tempCtx.beginPath()
+                tempCtx.rect(element.x, element.y, element.width, element.height)
+                tempCtx.stroke()
+              }
+              break
+
+            case "circle":
+              if (element.x !== undefined && element.y !== undefined && element.width !== undefined) {
+                tempCtx.beginPath()
+                tempCtx.arc(element.x + element.width / 2, element.y + element.width / 2, element.width / 2, 0, Math.PI * 2)
+                tempCtx.stroke()
+              }
+              break
+
+            case "text":
+              if (element.x !== undefined && element.y !== undefined && element.text) {
+                tempCtx.font = "16px Inter, sans-serif"
+                tempCtx.fillText(element.text, element.x, element.y)
+              }
+              break
+
+            case "sticker":
+              if (element.x !== undefined && element.y !== undefined && element.stickerType) {
+                tempCtx.font = "32px sans-serif"
+                tempCtx.fillText(element.stickerType, element.x, element.y)
+              }
+              break
+
+            case "image":
+              if (
+                element.x !== undefined &&
+                element.y !== undefined &&
+                element.width !== undefined &&
+                element.height !== undefined &&
+                element.imageUrl
+              ) {
+                const img = new Image()
+                img.src = element.imageUrl
+                img.crossOrigin = "anonymous"
+                img.onload = () => {
+                  tempCtx.drawImage(img, element.x!, element.y!, element.width!, element.height!)
+                }
+              }
+              break
+
+            case "arrow":
+              if (element.points && element.points.length > 1) {
+                const start = element.points[0]
+                const end = element.points[element.points.length - 1]
+
+                // Draw line
+                tempCtx.beginPath()
+                tempCtx.moveTo(start.x, start.y)
+                tempCtx.lineTo(end.x, end.y)
+                tempCtx.stroke()
+
+                // Draw arrowhead
+                const angle = Math.atan2(end.y - start.y, end.x - start.x)
+                tempCtx.beginPath()
+                tempCtx.moveTo(end.x, end.y)
+                tempCtx.lineTo(end.x - 15 * Math.cos(angle - Math.PI / 6), end.y - 15 * Math.sin(angle - Math.PI / 6))
+                tempCtx.lineTo(end.x - 15 * Math.cos(angle + Math.PI / 6), end.y - 15 * Math.sin(angle + Math.PI / 6))
+                tempCtx.closePath()
+                tempCtx.fill()
+              }
+              break
+
+            case "note":
+              if (
+                element.x !== undefined &&
+                element.y !== undefined &&
+                element.width !== undefined &&
+                element.height !== undefined &&
+                element.text
+              ) {
+                // Draw sticky note background
+                tempCtx.fillStyle = element.color + "80" // Add transparency
+                tempCtx.fillRect(element.x, element.y, element.width, element.height)
+
+                // Draw text
+                tempCtx.fillStyle = "#000000"
+                tempCtx.font = "14px Inter, sans-serif"
+
+                // Wrap text
+                const words = element.text.split(" ")
+                let line = ""
+                const lineHeight = 18
+                let offsetY = 20
+
+                for (let i = 0; i < words.length; i++) {
+                  const testLine = line + words[i] + " "
+                  const metrics = tempCtx.measureText(testLine)
+                  const testWidth = metrics.width
+
+                  if (testWidth > element.width - 20 && i > 0) {
+                    tempCtx.fillText(line, element.x + 10, element.y + offsetY)
+                    line = words[i] + " "
+                    offsetY += lineHeight
+                  } else {
+                    line = testLine
+                  }
+                }
+
+                tempCtx.fillText(line, element.x + 10, element.y + offsetY)
+              }
+              break
+          }
+        })
+      }
+    })
+    tempCtx.restore()
+
+    // Create download link
     const link = document.createElement("a")
     link.download = "brainboard.png"
-    link.href = canvasRef.current.toDataURL()
+    link.href = tempCanvas.toDataURL()
     link.click()
   }
 
