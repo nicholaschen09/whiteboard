@@ -45,6 +45,7 @@ import {
   DialogTrigger,
 } from "@/components/ui/dialog"
 import { HelpDialog } from "./help-dialog"
+import { Input } from "@/components/ui/input"
 
 // Mock WebSocket connection
 const createMockWebSocket = () => {
@@ -170,6 +171,9 @@ export function Brainboard({ boardId }: BrainboardProps) {
   const GRID_SIZE = 20 // Size of grid cells in pixels
   const [eraserSize, setEraserSize] = useState(10) // Default eraser size
   const [showHelp, setShowHelp] = useState(false)
+  const [showTextInput, setShowTextInput] = useState(false)
+  const [textInputPosition, setTextInputPosition] = useState<{ x: number; y: number } | null>(null)
+  const [textInputValue, setTextInputValue] = useState("")
 
   // Add temporary canvas ref
   const tempCanvasRef = useRef<HTMLCanvasElement>(null)
@@ -706,22 +710,37 @@ export function Brainboard({ boardId }: BrainboardProps) {
         newElement.height = 0
         break
 
-      case "text":
-        const text = prompt("Enter text:")
-        if (text) {
-          newElement.x = x
-          newElement.y = y
-          newElement.text = text
-          addElement(newElement)
-        }
-        return
-
       case "select":
         // Handle selection (not implemented in this demo)
         return
     }
 
     setCurrentElement(newElement)
+  }
+
+  const handleTextSubmit = () => {
+    if (textInputValue.trim()) {
+      // Get the center of the canvas for text placement
+      const canvas = canvasRef.current
+      if (canvas) {
+        const x = canvas.width / 2
+        const y = canvas.height / 2
+
+        const newElement: DrawingElement = {
+          id: Date.now().toString(),
+          type: "text",
+          x,
+          y,
+          text: textInputValue,
+          color: currentColor,
+          userId: 1,
+          lineWidth,
+        }
+        addElement(newElement)
+      }
+    }
+    setShowTextInput(false)
+    setTextInputValue("")
   }
 
   // Update handleMouseMove to remove eraser handling
@@ -1591,7 +1610,10 @@ export function Brainboard({ boardId }: BrainboardProps) {
                 <Button
                   variant="ghost"
                   size="sm"
-                  onClick={() => setCurrentTool("text")}
+                  onClick={() => {
+                    setCurrentTool("text")
+                    setShowTextInput(true)
+                  }}
                   className={cn("rounded-md", currentTool === "text" && "bg-slate-200 hover:bg-slate-300")}
                 >
                   <Type className="h-4 w-4" />
@@ -1899,6 +1921,36 @@ export function Brainboard({ boardId }: BrainboardProps) {
           onLayerMove={handleLayerMove}
           onLayerDelete={handleLayerDelete}
         />
+      )}
+      {showTextInput && (
+        <Dialog open={showTextInput} onOpenChange={setShowTextInput}>
+          <DialogContent className="sm:max-w-[425px]">
+            <DialogHeader>
+              <DialogTitle>Add Text</DialogTitle>
+            </DialogHeader>
+            <div className="grid gap-4 py-4">
+              <Input
+                value={textInputValue}
+                onChange={(e) => setTextInputValue(e.target.value)}
+                placeholder="Enter your text..."
+                autoFocus
+                onKeyDown={(e) => {
+                  if (e.key === "Enter") {
+                    handleTextSubmit()
+                  }
+                }}
+              />
+              <div className="flex justify-end gap-2">
+                <Button variant="outline" onClick={() => setShowTextInput(false)}>
+                  Cancel
+                </Button>
+                <Button onClick={handleTextSubmit}>
+                  Add Text
+                </Button>
+              </div>
+            </div>
+          </DialogContent>
+        </Dialog>
       )}
     </div>
   )
