@@ -622,8 +622,8 @@ export function Brainboard({ boardId }: BrainboardProps) {
                     context.drawImage(img, element.x, element.y, element.width, element.height)
                   }
                 } else if (element.type === "note" && element.text) {
-                  // Draw sticky note background
-                  context.fillStyle = element.color + "80" // Add transparency
+                  // Draw sticky note background with solid color
+                  context.fillStyle = element.color
                   context.fillRect(element.x, element.y, element.width, element.height)
                   // Draw text
                   context.fillStyle = "#000000"
@@ -1570,37 +1570,31 @@ export function Brainboard({ boardId }: BrainboardProps) {
                 element.y !== undefined &&
                 element.width !== undefined &&
                 element.height !== undefined &&
-                element.text
+                element.text &&
+                context
               ) {
-                // Draw sticky note background
-                tempCtx.fillStyle = element.color + "80" // Add transparency
-                tempCtx.fillRect(element.x, element.y, element.width, element.height)
-
+                // Draw sticky note background with solid color
+                context.fillStyle = element.color
+                context.fillRect(element.x, element.y, element.width, element.height)
                 // Draw text
-                tempCtx.fillStyle = "#000000"
-                tempCtx.font = "14px Inter, sans-serif"
-
-                // Wrap text
+                context.fillStyle = "#000000"
+                context.font = "14px Inter, sans-serif"
                 const words = element.text.split(" ")
                 let line = ""
                 const lineHeight = 18
                 let offsetY = 20
-
                 for (let i = 0; i < words.length; i++) {
                   const testLine = line + words[i] + " "
-                  const metrics = tempCtx.measureText(testLine)
-                  const testWidth = metrics.width
-
-                  if (testWidth > element.width - 20 && i > 0) {
-                    tempCtx.fillText(line, element.x + 10, element.y + offsetY)
+                  const metrics = context.measureText(testLine)
+                  if (metrics.width > element.width - 20 && i > 0) {
+                    context.fillText(line, element.x + 10, element.y + offsetY)
                     line = words[i] + " "
                     offsetY += lineHeight
                   } else {
                     line = testLine
                   }
                 }
-
-                tempCtx.fillText(line, element.x + 10, element.y + offsetY)
+                context.fillText(line, element.x + 10, element.y + offsetY)
               }
               break
           }
@@ -2118,7 +2112,7 @@ export function Brainboard({ boardId }: BrainboardProps) {
       y,
       width: 200,
       height: 150,
-      color: "#FFEB3B",
+      color: "#FFEB3B", // Solid yellow color
       text: noteInputValue,
       userId: 1,
       lineWidth: 2
@@ -2127,7 +2121,7 @@ export function Brainboard({ boardId }: BrainboardProps) {
     addElement(newElement)
     setNoteInputValue("")
     setShowNoteInput(false)
-    setCurrentTool("select") // Switch back to select tool after placing note
+    setCurrentTool("select")
   }
 
   return (
