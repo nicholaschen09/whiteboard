@@ -3,7 +3,7 @@
 import { useState, useEffect } from "react"
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
 import { Button } from "@/components/ui/button"
-import { Palette } from "lucide-react"
+import { Palette, Check } from "lucide-react"
 import { cn } from "@/lib/utils"
 
 const COLORS = [
@@ -58,63 +58,71 @@ export function ColorPicker({ color, onChange }: ColorPickerProps) {
           <Palette className="h-4 w-4 text-slate-950" />
         </Button>
       </PopoverTrigger>
-      <PopoverContent className="w-64 p-3">
-        <div className="space-y-2">
+      <PopoverContent className="w-40 px-0.5 py-4">
+        <div className="space-y-3">
           <h4 className="text-sm font-medium">Colors</h4>
-          <div className="grid grid-cols-5 gap-2">
+          <div className="grid grid-cols-5 gap-0.5">
             {COLORS.map((c) => (
               <button
                 key={c}
                 className={cn(
-                  "w-10 h-10 rounded-md border border-muted-foreground/20 focus:outline-none focus:ring-2 focus:ring-primary transition-all",
-                  color === c && "ring-2 ring-primary scale-110",
+                  "w-6 h-6 rounded-md border border-muted-foreground/20 focus:outline-none focus:ring-2 focus:ring-primary transition-all relative",
+                  color === c && "ring-2 ring-primary"
                 )}
                 style={{ backgroundColor: c }}
                 onClick={() => {
                   handleColorChange(c)
                   setOpen(false)
                 }}
-              />
+              >
+                {color === c && (
+                  <Check className="w-4 h-4 text-white absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 drop-shadow-[0_1px_1px_rgba(0,0,0,0.5)]" />
+                )}
+              </button>
             ))}
           </div>
 
           {customColors.length > 0 && (
             <>
               <h4 className="text-sm font-medium mt-4">Custom Colors</h4>
-              <div className="grid grid-cols-5 gap-2">
+              <div className="grid grid-cols-5 gap-0.5">
                 {customColors.map((c) => (
                   <button
                     key={c}
                     className={cn(
-                      "w-10 h-10 rounded-md border border-muted-foreground/20 focus:outline-none focus:ring-2 focus:ring-primary transition-all",
-                      color === c && "ring-2 ring-primary scale-110",
+                      "w-6 h-6 rounded-md border border-muted-foreground/20 focus:outline-none focus:ring-2 focus:ring-primary transition-all relative",
+                      color === c && "ring-2 ring-primary"
                     )}
                     style={{ backgroundColor: c }}
                     onClick={() => {
                       handleColorChange(c)
                       setOpen(false)
                     }}
-                  />
+                  >
+                    {color === c && (
+                      <Check className="w-4 h-4 text-white absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 drop-shadow-[0_1px_1px_rgba(0,0,0,0.5)]" />
+                    )}
+                  </button>
                 ))}
               </div>
             </>
           )}
 
-          <div className="flex items-center gap-2 mt-3 pt-2 border-t">
+          <div className="flex items-center gap-1 mt-4 pt-4 border-t">
             <div className="flex-1">
-              <h4 className="text-sm font-medium mb-1">Custom</h4>
-              <div className="flex items-center gap-2">
+              <h4 className="text-sm font-medium mb-3">Custom</h4>
+              <div className="flex items-center gap-1">
                 <input
                   type="color"
                   value={color}
                   onChange={(e) => handleColorChange(e.target.value)}
-                  className="w-10 h-10 rounded-md border border-muted-foreground/20 cursor-pointer"
+                  className="w-6 h-6 rounded-md border border-muted-foreground/20 cursor-pointer"
                 />
                 <input
                   type="text"
                   value={color}
                   onChange={(e) => handleColorChange(e.target.value)}
-                  className="flex-1 px-2 py-1 border rounded-md text-sm w-24"
+                  className="flex-1 px-1 py-0.5 border rounded-md text-sm w-20"
                   maxLength={7}
                 />
               </div>
