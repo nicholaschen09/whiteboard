@@ -1586,7 +1586,7 @@ export function Brainboard({ boardId }: BrainboardProps) {
           <ColorPicker color={currentColor} onChange={setCurrentColor} />
 
           <div className="flex items-center space-x-2 ml-2 bg-slate-50 px-3 py-1.5 rounded-md">
-            <span className="text-xs text-slate-500">Width</span>
+            <span className="text-xs text-slate-900">Width</span>
             <input
               type="range"
               min="1"
