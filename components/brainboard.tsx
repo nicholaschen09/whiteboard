@@ -945,18 +945,18 @@ export function Brainboard({ boardId }: BrainboardProps) {
   }
 
   return (
-    <div className="flex flex-col h-[80vh] border rounded-lg overflow-hidden bg-slate-50 dark:bg-slate-950 shadow-lg">
-      <div className="flex items-center justify-between p-2 border-b bg-slate-50 dark:bg-slate-950 dark:border-slate-800">
+    <div className="flex flex-col h-[80vh] border rounded-lg overflow-hidden bg-slate-50 shadow-lg">
+      <div className="flex items-center justify-between p-2 border-b bg-slate-50">
         <Tabs defaultValue="draw" className="w-full" onValueChange={setActiveTab}>
           <div className="flex items-center justify-between w-full">
-            <TabsList className="grid grid-cols-3 w-auto bg-slate-100 dark:bg-slate-900">
-              <TabsTrigger value="draw" className="px-4 data-[state=active]:bg-white dark:data-[state=active]:bg-slate-800">
+            <TabsList className="grid grid-cols-3 w-auto bg-slate-100">
+              <TabsTrigger value="draw" className="px-4 data-[state=active]:bg-white">
                 Draw
               </TabsTrigger>
-              <TabsTrigger value="insert" className="px-4 data-[state=active]:bg-white dark:data-[state=active]:bg-slate-800">
+              <TabsTrigger value="insert" className="px-4 data-[state=active]:bg-white">
                 Insert
               </TabsTrigger>
-              <TabsTrigger value="view" className="px-4 data-[state=active]:bg-white dark:data-[state=active]:bg-slate-800">
+              <TabsTrigger value="view" className="px-4 data-[state=active]:bg-white">
                 View
               </TabsTrigger>
             </TabsList>
@@ -1292,10 +1292,10 @@ export function Brainboard({ boardId }: BrainboardProps) {
         </Tabs>
       </div>
 
-      <div className="relative flex-grow bg-slate-100 dark:bg-slate-900">
+      <div className="relative flex-grow bg-slate-100">
         <canvas
           ref={canvasRef}
-          className="absolute inset-0 w-full h-full cursor-crosshair bg-white dark:bg-slate-800"
+          className="absolute inset-0 w-full h-full cursor-crosshair bg-white"
           onMouseDown={handleMouseDown}
           onMouseMove={handleMouseMove}
           onMouseUp={handleMouseUp}
@@ -1317,7 +1317,7 @@ export function Brainboard({ boardId }: BrainboardProps) {
               }}
             >
               {user.id !== 1 && (
-                <div className="absolute -mt-6 -ml-4 whitespace-nowrap text-black dark:text-white text-xs px-1 py-0.5">
+                <div className="absolute -mt-6 -ml-4 whitespace-nowrap text-black text-xs px-1 py-0.5">
                   {user.name}
                 </div>
               )}

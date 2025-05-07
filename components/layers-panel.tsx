@@ -43,7 +43,7 @@ export function LayersPanel({
                 {layers.map((layer, index) => (
                     <div
                         key={layer.id}
-                        className="flex items-center justify-between p-2 rounded-md bg-slate-100 dark:bg-slate-800"
+                        className="flex items-center justify-between p-2 rounded-md bg-slate-100"
                     >
                         <div className="flex items-center space-x-2">
                             <Button
