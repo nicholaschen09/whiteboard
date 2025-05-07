@@ -323,9 +323,32 @@ export function Brainboard({ boardId }: BrainboardProps) {
         if (!data) return
 
         if (data.type === "draw" && data.element) {
-          setElements((prev) => [...prev, data.element])
+          // Add the element to the current layer
+          setLayers(prevLayers =>
+            prevLayers.map(layer =>
+              layer.id === activeLayer
+                ? { ...layer, elements: [...layer.elements, data.element] }
+                : layer
+            )
+          )
+          setElements(prev => [...prev, data.element])
         } else if (data.type === "userMove" && typeof data.userId === 'number' && typeof data.x === 'number' && typeof data.y === 'number') {
-          setUsers((prev) => prev.map((user) => (user.id === data.userId ? { ...user, x: data.x, y: data.y } : user)))
+          setUsers(prev => prev.map(user =>
+            user.id === data.userId
+              ? { ...user, x: data.x, y: data.y }
+              : user
+          ))
+        } else if (data.type === "clear" && data.userId) {
+          // Handle board clear from other users
+          setLayers(prevLayers =>
+            prevLayers.map(layer => ({
+              ...layer,
+              elements: []
+            }))
+          )
+          setElements([])
+          setHistory([])
+          setHistoryIndex(-1)
         }
       } catch (e) {
         console.error("Failed to parse WebSocket message", e)
@@ -337,7 +360,7 @@ export function Brainboard({ boardId }: BrainboardProps) {
     return () => {
       ws.close()
     }
-  }, [])
+  }, [activeLayer]) // Add activeLayer to dependencies
 
   // Initialize canvas context
   useEffect(() => {
@@ -852,7 +875,8 @@ export function Brainboard({ boardId }: BrainboardProps) {
         JSON.stringify({
           type: "draw",
           element,
-        }),
+          layerId: activeLayer
+        })
       )
     }
   }
@@ -917,6 +941,16 @@ export function Brainboard({ boardId }: BrainboardProps) {
       localStorage.removeItem('whiteboard-layers')
     } catch (e) {
       console.error('Failed to clear localStorage:', e)
+    }
+
+    // Notify other users
+    if (socket && isConnected) {
+      socket.send(
+        JSON.stringify({
+          type: "clear",
+          userId: 1
+        })
+      )
     }
 
     // Redraw empty canvas
