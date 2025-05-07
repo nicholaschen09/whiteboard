@@ -658,7 +658,7 @@ export function Brainboard({ boardId }: BrainboardProps) {
     }
   }
 
-  // Update handleMouseDown to handle eraser
+  // Update handleMouseDown to remove image handling since we'll handle it directly
   const handleMouseDown = (e: React.MouseEvent<HTMLCanvasElement>) => {
     if (!canvasRef.current) return
 
@@ -719,12 +719,6 @@ export function Brainboard({ boardId }: BrainboardProps) {
       case "sticker":
         setShowStickers(true)
         // Store current position for later use when sticker is selected
-        setCurrentPosition({ x, y })
-        return
-
-      case "image":
-        setShowImageUploader(true)
-        // Store current position for later use when image is selected
         setCurrentPosition({ x, y })
         return
 
@@ -1651,7 +1645,10 @@ export function Brainboard({ boardId }: BrainboardProps) {
                 <Button
                   variant="ghost"
                   size="sm"
-                  onClick={() => setCurrentTool("image")}
+                  onClick={() => {
+                    setCurrentTool("image")
+                    setShowImageUploader(true)
+                  }}
                   className={cn("rounded-md", currentTool === "image" && "bg-slate-200 hover:bg-slate-300")}
                 >
                   <ImageIcon className="h-4 w-4" />

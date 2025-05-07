@@ -36,13 +36,17 @@ export function ImageUploader({ onUpload, onClose }: ImageUploaderProps) {
     }
   }
 
-  // In a real app, this would handle file uploads
   const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0]
     if (file) {
-      // For demo purposes, we'll just use a placeholder
-      onUpload("/placeholder.svg?height=300&width=400")
-      onClose()
+      const reader = new FileReader()
+      reader.onload = (event) => {
+        if (event.target?.result) {
+          onUpload(event.target.result as string)
+          onClose()
+        }
+      }
+      reader.readAsDataURL(file)
     }
   }
 
@@ -82,15 +86,23 @@ export function ImageUploader({ onUpload, onClose }: ImageUploaderProps) {
           </TabsContent>
 
           <TabsContent value="upload" className="space-y-4 py-4">
-            <div className="border-2 border-dashed rounded-lg p-6 text-center bg-slate-50">
+            <div
+              className="border-2 border-dashed rounded-lg p-6 text-center bg-slate-50 cursor-pointer hover:bg-slate-100 transition-colors"
+              onClick={() => document.getElementById('file-upload')?.click()}
+            >
               <Upload className="h-8 w-8 mx-auto mb-2 text-slate-400" />
               <p className="text-sm text-slate-600 mb-2">Drag and drop an image, or click to browse</p>
-              <Input id="file-upload" type="file" accept="image/*" className="hidden" onChange={handleFileUpload} />
-              <Label htmlFor="file-upload" asChild>
-                <Button variant="outline" className="mt-2">
-                  Choose File
-                </Button>
-              </Label>
+              <Input
+                id="file-upload"
+                type="file"
+                accept="image/*"
+                className="hidden"
+                onChange={handleFileUpload}
+                onClick={(e) => e.stopPropagation()}
+              />
+              <Button variant="outline" className="mt-2">
+                Choose File
+              </Button>
             </div>
           </TabsContent>
 
