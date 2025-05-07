@@ -70,10 +70,7 @@ export function ColorPicker({ color, onChange }: ColorPickerProps) {
                   color === c && "border-primary"
                 )}
                 style={{ backgroundColor: c }}
-                onClick={() => {
-                  handleColorChange(c)
-                  setOpen(false)
-                }}
+                onClick={() => handleColorChange(c)}
               >
                 {color === c && (
                   <Check className="w-4 h-4 text-white drop-shadow-[0_1px_1px_rgba(0,0,0,0.5)]" />
@@ -94,10 +91,7 @@ export function ColorPicker({ color, onChange }: ColorPickerProps) {
                       color === c && "border-primary"
                     )}
                     style={{ backgroundColor: c }}
-                    onClick={() => {
-                      handleColorChange(c)
-                      setOpen(false)
-                    }}
+                    onClick={() => handleColorChange(c)}
                   >
                     {color === c && (
                       <Check className="w-4 h-4 text-white drop-shadow-[0_1px_1px_rgba(0,0,0,0.5)]" />
