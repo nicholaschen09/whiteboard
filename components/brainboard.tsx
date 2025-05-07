@@ -150,6 +150,9 @@ export function Brainboard({ boardId }: BrainboardProps) {
   ])
   const [showLayers, setShowLayers] = useState(false)
   const [activeLayer, setActiveLayer] = useState<string>("default")
+  const [showGrid, setShowGrid] = useState(false)
+  const [snapToGrid, setSnapToGrid] = useState(false)
+  const GRID_SIZE = 20 // Size of grid cells in pixels
 
   // Save elements to localStorage whenever they change
   useEffect(() => {
@@ -366,11 +369,50 @@ export function Brainboard({ boardId }: BrainboardProps) {
     return () => clearInterval(interval)
   }, [socket, isConnected])
 
+  // Add effect to redraw when grid settings change
+  useEffect(() => {
+    if (context && canvasRef.current) {
+      drawElements()
+    }
+  }, [showGrid, snapToGrid]) // Add grid settings to dependencies
+
+  // Update drawGrid function to ensure it's visible
+  const drawGrid = () => {
+    if (!context || !canvasRef.current || !showGrid) return
+
+    const canvas = canvasRef.current
+    context.save()
+    context.strokeStyle = '#e5e7eb' // Light grey color for grid
+    context.lineWidth = 1 // Make lines slightly more visible
+
+    // Draw vertical lines
+    for (let x = 0; x <= canvas.width; x += GRID_SIZE) {
+      context.beginPath()
+      context.moveTo(x, 0)
+      context.lineTo(x, canvas.height)
+      context.stroke()
+    }
+
+    // Draw horizontal lines
+    for (let y = 0; y <= canvas.height; y += GRID_SIZE) {
+      context.beginPath()
+      context.moveTo(0, y)
+      context.lineTo(canvas.width, y)
+      context.stroke()
+    }
+
+    context.restore()
+  }
+
+  // Update drawElements to ensure grid is drawn correctly
   const drawElements = () => {
     if (!context || !canvasRef.current) return
 
     const canvas = canvasRef.current
     context.clearRect(0, 0, canvas.width, canvas.height)
+
+    // Draw grid first
+    drawGrid()
 
     // Draw elements from all visible layers
     layers.forEach(layer => {
@@ -513,21 +555,31 @@ export function Brainboard({ boardId }: BrainboardProps) {
     })
   }
 
-  // Fix the cursor position for drawing
-  // Replace the handleMouseDown function with this improved version:
+  // Add function to snap coordinates to grid
+  const snapToGridPoint = (x: number, y: number) => {
+    if (!snapToGrid) return { x, y }
+    return {
+      x: Math.round(x / GRID_SIZE) * GRID_SIZE,
+      y: Math.round(y / GRID_SIZE) * GRID_SIZE
+    }
+  }
+
+  // Update handleMouseDown to use grid snapping
   const handleMouseDown = (e: React.MouseEvent<HTMLCanvasElement>) => {
     if (!canvasRef.current) return
 
     const canvas = canvasRef.current
     const rect = canvas.getBoundingClientRect()
-
-    // Get precise cursor position relative to the canvas
-    // Account for any CSS scaling by using clientWidth/offsetWidth ratio
     const scaleX = canvas.width / canvas.clientWidth
     const scaleY = canvas.height / canvas.clientHeight
 
-    const x = (e.clientX - rect.left) * scaleX
-    const y = (e.clientY - rect.top) * scaleY
+    let x = (e.clientX - rect.left) * scaleX
+    let y = (e.clientY - rect.top) * scaleY
+
+    // Apply grid snapping
+    const snapped = snapToGridPoint(x, y)
+    x = snapped.x
+    y = snapped.y
 
     setIsDrawing(true)
 
@@ -600,19 +652,22 @@ export function Brainboard({ boardId }: BrainboardProps) {
     setCurrentElement(newElement)
   }
 
-  // Replace the handleMouseMove function with this improved version:
+  // Update handleMouseMove to use grid snapping
   const handleMouseMove = (e: React.MouseEvent<HTMLCanvasElement>) => {
     if (!canvasRef.current) return
 
     const canvas = canvasRef.current
     const rect = canvas.getBoundingClientRect()
-
-    // Get precise cursor position with scaling
     const scaleX = canvas.width / canvas.clientWidth
     const scaleY = canvas.height / canvas.clientHeight
 
-    const x = (e.clientX - rect.left) * scaleX
-    const y = (e.clientY - rect.top) * scaleY
+    let x = (e.clientX - rect.left) * scaleX
+    let y = (e.clientY - rect.top) * scaleY
+
+    // Apply grid snapping
+    const snapped = snapToGridPoint(x, y)
+    x = snapped.x
+    y = snapped.y
 
     // Always update current user cursor position for accurate tracking
     setUsers((prevUsers) => prevUsers.map((user) => (user.id === 1 ? { ...user, x, y } : user)))
@@ -1329,7 +1384,15 @@ export function Brainboard({ boardId }: BrainboardProps) {
       {showShareDialog && <ShareDialog onShare={handleShare} onCancel={() => setShowShareDialog(false)} />}
       {showStickers && <StickersPanel onSelect={handleAddSticker} onClose={() => setShowStickers(false)} />}
       {showImageUploader && <ImageUploader onUpload={handleAddImage} onClose={() => setShowImageUploader(false)} />}
-      {showSettings && <SettingsPanel onClose={() => setShowSettings(false)} />}
+      {showSettings && (
+        <SettingsPanel
+          onClose={() => setShowSettings(false)}
+          showGrid={showGrid}
+          onShowGridChange={setShowGrid}
+          snapToGrid={snapToGrid}
+          onSnapToGridChange={setSnapToGrid}
+        />
+      )}
       {showLayers && (
         <LayersPanel
           layers={layers}
