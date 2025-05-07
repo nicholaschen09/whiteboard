@@ -1446,20 +1446,6 @@ export function Brainboard({ boardId }: BrainboardProps) {
                 />
                 <span className="text-xs text-slate-500 w-4">{lineWidth}</span>
               </div>
-
-              {currentTool === "eraser" && (
-                <div className="flex items-center space-x-1 ml-2">
-                  <input
-                    type="range"
-                    min="5"
-                    max="50"
-                    value={eraserSize}
-                    onChange={(e) => setEraserSize(Number.parseInt(e.target.value))}
-                    className="w-20"
-                  />
-                  <span className="text-xs text-slate-500 w-4">{eraserSize}</span>
-                </div>
-              )}
             </div>
           </TabsContent>
 
