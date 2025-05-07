@@ -939,6 +939,24 @@ export function Brainboard({ boardId }: BrainboardProps) {
                   <TooltipContent>{isConnected ? "Connected Users" : "Connecting..."}</TooltipContent>
                 </Tooltip>
               </TooltipProvider>
+
+              <Separator orientation="vertical" className="h-6 mx-1" />
+
+              <TooltipProvider>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      onClick={() => setShowSettings(true)}
+                      className="rounded-md"
+                    >
+                      <Settings className="h-4 w-4" />
+                    </Button>
+                  </TooltipTrigger>
+                  <TooltipContent>Settings</TooltipContent>
+                </Tooltip>
+              </TooltipProvider>
             </div>
           </div>
 
@@ -1150,23 +1168,6 @@ export function Brainboard({ boardId }: BrainboardProps) {
                     </Button>
                   </TooltipTrigger>
                   <TooltipContent>Manage Layers</TooltipContent>
-                </Tooltip>
-              </TooltipProvider>
-
-              <TooltipProvider>
-                <Tooltip>
-                  <TooltipTrigger asChild>
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      className="rounded-md"
-                      onClick={() => setShowSettings(true)}
-                    >
-                      <Settings className="h-4 w-4 mr-1" />
-                      <span className="text-xs">Settings</span>
-                    </Button>
-                  </TooltipTrigger>
-                  <TooltipContent>Board Settings</TooltipContent>
                 </Tooltip>
               </TooltipProvider>
             </div>
