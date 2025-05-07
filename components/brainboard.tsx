@@ -611,82 +611,6 @@ export function Brainboard({ boardId }: BrainboardProps) {
     }
   }
 
-  // Add back the proper element detection logic
-  const isPointNearElement = (x: number, y: number, element: DrawingElement) => {
-    const threshold = eraserSize
-
-    switch (element.type) {
-      case "pen":
-        if (element.points) {
-          return element.points.some(point => {
-            const dx = point.x - x
-            const dy = point.y - y
-            return Math.sqrt(dx * dx + dy * dy) < threshold
-          })
-        }
-        return false
-
-      case "rectangle":
-        if (element.x !== undefined && element.y !== undefined &&
-          element.width !== undefined && element.height !== undefined) {
-          // Check if point is within rectangle bounds
-          return x >= element.x && x <= element.x + element.width &&
-            y >= element.y && y <= element.y + element.height
-        }
-        return false
-
-      case "circle":
-        if (element.x !== undefined && element.y !== undefined && element.width !== undefined) {
-          const centerX = element.x + element.width / 2
-          const centerY = element.y + element.width / 2
-          const radius = element.width / 2
-          const dx = x - centerX
-          const dy = y - centerY
-          return Math.sqrt(dx * dx + dy * dy) <= radius
-        }
-        return false
-
-      case "text":
-      case "sticker":
-        if (element.x !== undefined && element.y !== undefined) {
-          return Math.abs(element.x - x) < threshold && Math.abs(element.y - y) < threshold
-        }
-        return false
-
-      case "image":
-      case "note":
-        if (element.x !== undefined && element.y !== undefined &&
-          element.width !== undefined && element.height !== undefined) {
-          return x >= element.x && x <= element.x + element.width &&
-            y >= element.y && y <= element.y + element.height
-        }
-        return false
-
-      default:
-        return false
-    }
-  }
-
-  // Update the eraser logic to use proper element detection
-  const handleErasing = (x: number, y: number) => {
-    // Get the current active layer
-    const currentLayer = layers.find(layer => layer.id === activeLayer)
-    if (!currentLayer) return
-
-    // Remove any element that intersects with the eraser
-    const newElements = currentLayer.elements.filter(element => !isPointNearElement(x, y, element))
-
-    // Update the active layer with new elements
-    const updatedLayers = layers.map(layer =>
-      layer.id === activeLayer
-        ? { ...layer, elements: newElements }
-        : layer
-    )
-
-    setLayers(updatedLayers)
-    setElements(newElements)
-  }
-
   // Update handleMouseDown to handle eraser
   const handleMouseDown = (e: React.MouseEvent<HTMLCanvasElement>) => {
     if (!canvasRef.current) return
@@ -709,7 +633,7 @@ export function Brainboard({ boardId }: BrainboardProps) {
     // Update current user position
     setUsers((prevUsers) => prevUsers.map((user) => (user.id === 1 ? { ...user, x, y } : user)))
 
-    if (currentTool === "eraser" as Tool) {
+    if (currentTool === "eraser") {
       handleErasing(x, y)
       return
     }
@@ -725,12 +649,7 @@ export function Brainboard({ boardId }: BrainboardProps) {
     switch (currentTool) {
       case "pen":
       case "arrow":
-      case "eraser":
         newElement.points = [{ x, y }]
-        if (currentTool === "eraser") {
-          newElement.color = "#ffffff" // White for eraser
-          newElement.lineWidth = lineWidth * 2 // Thicker for eraser
-        }
         break
 
       case "rectangle":
@@ -1167,6 +1086,89 @@ export function Brainboard({ boardId }: BrainboardProps) {
     }
     setLayers(prevLayers => [...prevLayers, newLayer])
     setActiveLayer(newLayer.id)
+  }
+
+  // Update handleErasing to properly remove elements
+  const handleErasing = (x: number, y: number) => {
+    // Get the current active layer
+    const currentLayer = layers.find(layer => layer.id === activeLayer)
+    if (!currentLayer) return
+
+    // Find elements that intersect with the eraser
+    const elementsToRemove = currentLayer.elements.filter(element => {
+      switch (element.type) {
+        case "pen":
+          if (element.points) {
+            return element.points.some(point => {
+              const dx = point.x - x
+              const dy = point.y - y
+              return Math.sqrt(dx * dx + dy * dy) < eraserSize
+            })
+          }
+          return false
+
+        case "rectangle":
+          if (element.x !== undefined && element.y !== undefined &&
+            element.width !== undefined && element.height !== undefined) {
+            return x >= element.x && x <= element.x + element.width &&
+              y >= element.y && y <= element.y + element.height
+          }
+          return false
+
+        case "circle":
+          if (element.x !== undefined && element.y !== undefined && element.width !== undefined) {
+            const centerX = element.x + element.width / 2
+            const centerY = element.y + element.width / 2
+            const radius = element.width / 2
+            const dx = x - centerX
+            const dy = y - centerY
+            return Math.sqrt(dx * dx + dy * dy) <= radius
+          }
+          return false
+
+        case "text":
+        case "sticker":
+          if (element.x !== undefined && element.y !== undefined) {
+            return Math.abs(element.x - x) < eraserSize && Math.abs(element.y - y) < eraserSize
+          }
+          return false
+
+        case "image":
+        case "note":
+          if (element.x !== undefined && element.y !== undefined &&
+            element.width !== undefined && element.height !== undefined) {
+            return x >= element.x && x <= element.x + element.width &&
+              y >= element.y && y <= element.y + element.height
+          }
+          return false
+
+        default:
+          return false
+      }
+    })
+
+    if (elementsToRemove.length > 0) {
+      // Remove the elements from the current layer
+      const newElements = currentLayer.elements.filter(element => !elementsToRemove.includes(element))
+
+      // Update the layers state
+      setLayers(prevLayers =>
+        prevLayers.map(layer =>
+          layer.id === activeLayer
+            ? { ...layer, elements: newElements }
+            : layer
+        )
+      )
+
+      // Update the elements state
+      setElements(newElements)
+
+      // Add to history for undo/redo
+      const newHistory = history.slice(0, historyIndex + 1)
+      newHistory.push([...elements])
+      setHistory(newHistory)
+      setHistoryIndex(newHistory.length - 1)
+    }
   }
 
   return (
