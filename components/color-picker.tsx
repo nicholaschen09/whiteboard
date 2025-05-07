@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
 import { Button } from "@/components/ui/button"
 import { Palette } from "lucide-react"
@@ -26,6 +26,26 @@ interface ColorPickerProps {
 
 export function ColorPicker({ color, onChange }: ColorPickerProps) {
   const [open, setOpen] = useState(false)
+  const [customColors, setCustomColors] = useState<string[]>(() => {
+    if (typeof window !== 'undefined') {
+      const saved = localStorage.getItem('custom-colors')
+      return saved ? JSON.parse(saved) : []
+    }
+    return []
+  })
+
+  // Save custom colors to localStorage whenever they change
+  useEffect(() => {
+    localStorage.setItem('custom-colors', JSON.stringify(customColors))
+  }, [customColors])
+
+  const handleColorChange = (newColor: string) => {
+    onChange(newColor)
+    // Add to custom colors if it's not already in the list and not in the default colors
+    if (!COLORS.includes(newColor) && !customColors.includes(newColor)) {
+      setCustomColors(prev => [newColor, ...prev].slice(0, 10)) // Keep only the 10 most recent custom colors
+    }
+  }
 
   return (
     <Popover open={open} onOpenChange={setOpen}>
@@ -51,12 +71,35 @@ export function ColorPicker({ color, onChange }: ColorPickerProps) {
                 )}
                 style={{ backgroundColor: c }}
                 onClick={() => {
-                  onChange(c)
+                  handleColorChange(c)
                   setOpen(false)
                 }}
               />
             ))}
           </div>
+
+          {customColors.length > 0 && (
+            <>
+              <h4 className="text-sm font-medium mt-4">Custom Colors</h4>
+              <div className="grid grid-cols-5 gap-2">
+                {customColors.map((c) => (
+                  <button
+                    key={c}
+                    className={cn(
+                      "w-10 h-10 rounded-md border border-muted-foreground/20 focus:outline-none focus:ring-2 focus:ring-primary transition-all",
+                      color === c && "ring-2 ring-primary scale-110",
+                    )}
+                    style={{ backgroundColor: c }}
+                    onClick={() => {
+                      handleColorChange(c)
+                      setOpen(false)
+                    }}
+                  />
+                ))}
+              </div>
+            </>
+          )}
+
           <div className="flex items-center gap-2 mt-3 pt-2 border-t">
             <div className="flex-1">
               <h4 className="text-sm font-medium mb-1">Custom</h4>
@@ -64,13 +107,13 @@ export function ColorPicker({ color, onChange }: ColorPickerProps) {
                 <input
                   type="color"
                   value={color}
-                  onChange={(e) => onChange(e.target.value)}
-                  className="w-8 h-8 rounded-md border border-muted-foreground/20"
+                  onChange={(e) => handleColorChange(e.target.value)}
+                  className="w-10 h-10 rounded-md border border-muted-foreground/20 cursor-pointer"
                 />
                 <input
                   type="text"
                   value={color}
-                  onChange={(e) => onChange(e.target.value)}
+                  onChange={(e) => handleColorChange(e.target.value)}
                   className="flex-1 px-2 py-1 border rounded-md text-sm w-24"
                   maxLength={7}
                 />
