@@ -1418,12 +1418,9 @@ export function Brainboard({ boardId }: BrainboardProps) {
       <div className="flex items-center justify-between p-2 border-b bg-slate-50">
         <Tabs defaultValue="draw" className="w-full" onValueChange={setActiveTab}>
           <div className="flex items-center justify-between w-full">
-            <TabsList className="grid grid-cols-2 w-auto bg-slate-100">
+            <TabsList className="w-auto bg-slate-100">
               <TabsTrigger value="draw" className="px-4 data-[state=active]:bg-white">
                 Draw
-              </TabsTrigger>
-              <TabsTrigger value="view" className="px-4 data-[state=active]:bg-white">
-                View
               </TabsTrigger>
             </TabsList>
 
@@ -1533,6 +1530,24 @@ export function Brainboard({ boardId }: BrainboardProps) {
                     </Button>
                   </TooltipTrigger>
                   <TooltipContent>Settings</TooltipContent>
+                </Tooltip>
+              </TooltipProvider>
+
+              <Separator orientation="vertical" className="h-6 mx-1" />
+
+              <TooltipProvider>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      onClick={() => setShowLayers(true)}
+                      className="rounded-md"
+                    >
+                      <Layers className="h-4 w-4" />
+                    </Button>
+                  </TooltipTrigger>
+                  <TooltipContent>Manage Layers</TooltipContent>
                 </Tooltip>
               </TooltipProvider>
 
@@ -1750,26 +1765,6 @@ export function Brainboard({ boardId }: BrainboardProps) {
                   <span className="text-xs font-medium">{lineWidth}</span>
                 </div>
               </div>
-            </div>
-          </TabsContent>
-
-          <TabsContent value="view" className="mt-0 pt-2 border-t">
-            <div className="flex items-center space-x-1 overflow-x-auto pb-1 scrollbar-hide">
-              <TooltipProvider>
-                <Tooltip>
-                  <TooltipTrigger asChild>
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      className="rounded-md"
-                      onClick={() => setShowLayers(true)}
-                    >
-                      <Layers className="h-4 w-4" />
-                    </Button>
-                  </TooltipTrigger>
-                  <TooltipContent>Manage Layers</TooltipContent>
-                </Tooltip>
-              </TooltipProvider>
             </div>
           </TabsContent>
         </Tabs>
