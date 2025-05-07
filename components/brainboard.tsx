@@ -1423,145 +1423,6 @@ export function Brainboard({ boardId }: BrainboardProps) {
                 Draw
               </TabsTrigger>
             </TabsList>
-
-            <div className="flex items-center space-x-1">
-              <TooltipProvider>
-                <Tooltip>
-                  <TooltipTrigger asChild>
-                    <Button
-                      variant="ghost"
-                      size="icon"
-                      onClick={handleUndo}
-                      disabled={historyIndex < 0}
-                      className="rounded-md"
-                    >
-                      <Undo className="h-4 w-4" />
-                    </Button>
-                  </TooltipTrigger>
-                  <TooltipContent>Undo</TooltipContent>
-                </Tooltip>
-              </TooltipProvider>
-
-              <TooltipProvider>
-                <Tooltip>
-                  <TooltipTrigger asChild>
-                    <Button
-                      variant="ghost"
-                      size="icon"
-                      onClick={handleRedo}
-                      disabled={historyIndex >= history.length - 1}
-                      className="rounded-md"
-                    >
-                      <Redo className="h-4 w-4" />
-                    </Button>
-                  </TooltipTrigger>
-                  <TooltipContent>Redo</TooltipContent>
-                </Tooltip>
-              </TooltipProvider>
-
-              <Separator orientation="vertical" className="h-6 mx-1" />
-
-              <TooltipProvider>
-                <Tooltip>
-                  <TooltipTrigger asChild>
-                    <Button variant="ghost" size="icon" onClick={handleEraseBoard} className="rounded-md">
-                      <Trash2 className="h-4 w-4" />
-                    </Button>
-                  </TooltipTrigger>
-                  <TooltipContent>Erase Board</TooltipContent>
-                </Tooltip>
-              </TooltipProvider>
-
-              <TooltipProvider>
-                <Tooltip>
-                  <TooltipTrigger asChild>
-                    <Button variant="ghost" size="icon" onClick={handleDownload} className="rounded-md">
-                      <Download className="h-4 w-4" />
-                    </Button>
-                  </TooltipTrigger>
-                  <TooltipContent>Download</TooltipContent>
-                </Tooltip>
-              </TooltipProvider>
-
-              <Separator orientation="vertical" className="h-6 mx-1" />
-
-              <TooltipProvider>
-                <Tooltip>
-                  <TooltipTrigger asChild>
-                    <Button variant="ghost" size="icon" onClick={() => setShowShareDialog(true)} className="rounded-md">
-                      <Share2 className="h-4 w-4" />
-                    </Button>
-                  </TooltipTrigger>
-                  <TooltipContent>Share</TooltipContent>
-                </Tooltip>
-              </TooltipProvider>
-
-              <TooltipProvider>
-                <Tooltip>
-                  <TooltipTrigger asChild>
-                    <Button
-                      variant={showUsers ? "default" : "ghost"}
-                      size="icon"
-                      onClick={() => setShowUsers(!showUsers)}
-                      className="rounded-md relative"
-                    >
-                      <Users className="h-4 w-4" />
-                      <span className="absolute -top-1 -right-1 bg-primary text-primary-foreground rounded-full w-4 h-4 text-[10px] flex items-center justify-center">
-                        {users.filter((u) => u.online).length}
-                      </span>
-                    </Button>
-                  </TooltipTrigger>
-                  <TooltipContent>{isConnected ? "Connected Users" : "Connecting..."}</TooltipContent>
-                </Tooltip>
-              </TooltipProvider>
-
-              <Separator orientation="vertical" className="h-6 mx-1" />
-
-              <TooltipProvider>
-                <Tooltip>
-                  <TooltipTrigger asChild>
-                    <Button
-                      variant="ghost"
-                      size="icon"
-                      onClick={() => setShowSettings(true)}
-                      className="rounded-md"
-                    >
-                      <Settings className="h-4 w-4" />
-                    </Button>
-                  </TooltipTrigger>
-                  <TooltipContent>Settings</TooltipContent>
-                </Tooltip>
-              </TooltipProvider>
-
-              <Separator orientation="vertical" className="h-6 mx-1" />
-
-              <TooltipProvider>
-                <Tooltip>
-                  <TooltipTrigger asChild>
-                    <Button
-                      variant="ghost"
-                      size="icon"
-                      onClick={() => setShowLayers(true)}
-                      className="rounded-md"
-                    >
-                      <Layers className="h-4 w-4" />
-                    </Button>
-                  </TooltipTrigger>
-                  <TooltipContent>Manage Layers</TooltipContent>
-                </Tooltip>
-              </TooltipProvider>
-
-              <Separator orientation="vertical" className="h-6 mx-1" />
-
-              <TooltipProvider>
-                <Tooltip>
-                  <TooltipTrigger asChild>
-                    <HelpDialog />
-                  </TooltipTrigger>
-                  <TooltipContent>Help & Tips</TooltipContent>
-                </Tooltip>
-              </TooltipProvider>
-            </div>
           </div>
 
           <TabsContent value="draw" className="mt-0 pt-2 border-t">
@@ -1765,6 +1626,141 @@ export function Brainboard({ boardId }: BrainboardProps) {
                   <span className="text-xs font-medium">{lineWidth}</span>
                 </div>
               </div>
+
+              <Separator orientation="vertical" className="h-6 mx-1" />
+
+              <TooltipProvider>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={handleUndo}
+                      disabled={historyIndex < 0}
+                      className="rounded-md"
+                    >
+                      <Undo className="h-4 w-4" />
+                    </Button>
+                  </TooltipTrigger>
+                  <TooltipContent>Undo</TooltipContent>
+                </Tooltip>
+              </TooltipProvider>
+
+              <TooltipProvider>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={handleRedo}
+                      disabled={historyIndex >= history.length - 1}
+                      className="rounded-md"
+                    >
+                      <Redo className="h-4 w-4" />
+                    </Button>
+                  </TooltipTrigger>
+                  <TooltipContent>Redo</TooltipContent>
+                </Tooltip>
+              </TooltipProvider>
+
+              <Separator orientation="vertical" className="h-6 mx-1" />
+
+              <TooltipProvider>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <Button variant="ghost" size="sm" onClick={handleEraseBoard} className="rounded-md">
+                      <Trash2 className="h-4 w-4" />
+                    </Button>
+                  </TooltipTrigger>
+                  <TooltipContent>Erase Board</TooltipContent>
+                </Tooltip>
+              </TooltipProvider>
+
+              <TooltipProvider>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <Button variant="ghost" size="sm" onClick={handleDownload} className="rounded-md">
+                      <Download className="h-4 w-4" />
+                    </Button>
+                  </TooltipTrigger>
+                  <TooltipContent>Download</TooltipContent>
+                </Tooltip>
+              </TooltipProvider>
+
+              <Separator orientation="vertical" className="h-6 mx-1" />
+
+              <TooltipProvider>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <Button variant="ghost" size="sm" onClick={() => setShowShareDialog(true)} className="rounded-md">
+                      <Share2 className="h-4 w-4" />
+                    </Button>
+                  </TooltipTrigger>
+                  <TooltipContent>Share</TooltipContent>
+                </Tooltip>
+              </TooltipProvider>
+
+              <TooltipProvider>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <Button
+                      variant={showUsers ? "default" : "ghost"}
+                      size="sm"
+                      onClick={() => setShowUsers(!showUsers)}
+                      className="rounded-md relative"
+                    >
+                      <Users className="h-4 w-4" />
+                      <span className="absolute -top-1 -right-1 bg-primary text-primary-foreground rounded-full w-4 h-4 text-[10px] flex items-center justify-center">
+                        {users.filter((u) => u.online).length}
+                      </span>
+                    </Button>
+                  </TooltipTrigger>
+                  <TooltipContent>{isConnected ? "Connected Users" : "Connecting..."}</TooltipContent>
+                </Tooltip>
+              </TooltipProvider>
+
+              <Separator orientation="vertical" className="h-6 mx-1" />
+
+              <TooltipProvider>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => setShowSettings(true)}
+                      className="rounded-md"
+                    >
+                      <Settings className="h-4 w-4" />
+                    </Button>
+                  </TooltipTrigger>
+                  <TooltipContent>Settings</TooltipContent>
+                </Tooltip>
+              </TooltipProvider>
+
+              <TooltipProvider>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => setShowLayers(true)}
+                      className="rounded-md"
+                    >
+                      <Layers className="h-4 w-4" />
+                    </Button>
+                  </TooltipTrigger>
+                  <TooltipContent>Manage Layers</TooltipContent>
+                </Tooltip>
+              </TooltipProvider>
+
+              <TooltipProvider>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <HelpDialog />
+                  </TooltipTrigger>
+                  <TooltipContent>Help & Tips</TooltipContent>
+                </Tooltip>
+              </TooltipProvider>
             </div>
           </TabsContent>
         </Tabs>
