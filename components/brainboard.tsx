@@ -55,20 +55,24 @@ const createMockWebSocket = () => {
 
   return {
     send: (data: string) => {
-      // Simulate broadcasting to other users after a delay
-      setTimeout(() => {
+      try {
         const parsedData = JSON.parse(data)
-        if (parsedData.type === "draw") {
-          listeners.message.forEach((listener) =>
-            listener({
-              data: JSON.stringify({
-                ...parsedData,
-                userId: Math.floor(Math.random() * 3) + 2, // Assign to a random user that's not the current user
+        if (parsedData.type === "draw" && parsedData.element) {
+          // Simulate broadcasting to other users after a delay
+          setTimeout(() => {
+            listeners.message.forEach((listener) =>
+              listener({
+                data: JSON.stringify({
+                  ...parsedData,
+                  userId: Math.floor(Math.random() * 3) + 2, // Assign to a random user that's not the current user
+                }),
               }),
-            }),
-          )
+            )
+          }, 300)
         }
-      }, 300)
+      } catch (e) {
+        console.error("Failed to parse outgoing WebSocket message", e)
+      }
     },
     addEventListener: (event: string, callback: any) => {
       if (event === "message") listeners.message.push(callback)
@@ -136,13 +140,7 @@ export function Brainboard({ boardId }: BrainboardProps) {
   const [isDrawing, setIsDrawing] = useState(false)
   const [currentTool, setCurrentTool] = useState<Tool>("pen")
   const [currentColor, setCurrentColor] = useState("#4B5563") // Slate-600 grey color
-  const [elements, setElements] = useState<DrawingElement[]>(() => {
-    if (typeof window !== 'undefined') {
-      const savedElements = localStorage.getItem('whiteboard-elements')
-      return savedElements ? JSON.parse(savedElements) : []
-    }
-    return []
-  })
+  const [elements, setElements] = useState<DrawingElement[]>([])
   const [history, setHistory] = useState<DrawingElement[][]>([])
   const [historyIndex, setHistoryIndex] = useState(-1)
   const [currentElement, setCurrentElement] = useState<DrawingElement | null>(null)
@@ -158,22 +156,13 @@ export function Brainboard({ boardId }: BrainboardProps) {
   const [currentPosition, setCurrentPosition] = useState<{ x: number; y: number } | null>(null)
   const [activeTab, setActiveTab] = useState<string>("draw")
   const [showSettings, setShowSettings] = useState(false)
-  const [layers, setLayers] = useState<Layer[]>(() => {
-    if (typeof window !== 'undefined') {
-      const savedLayers = localStorage.getItem('whiteboard-layers')
-      if (savedLayers) {
-        const parsedLayers = JSON.parse(savedLayers)
-        return parsedLayers
-      }
-    }
-    return [{
-      id: "default",
-      name: "Default Layer",
-      visible: true,
-      locked: false,
-      elements: []
-    }]
-  })
+  const [layers, setLayers] = useState<Layer[]>([{
+    id: "default",
+    name: "Default Layer",
+    visible: true,
+    locked: false,
+    elements: []
+  }])
   const [showLayers, setShowLayers] = useState(false)
   const [activeLayer, setActiveLayer] = useState<string>("default")
   const [showGrid, setShowGrid] = useState(false)
@@ -188,35 +177,39 @@ export function Brainboard({ boardId }: BrainboardProps) {
 
   // Load saved data on initial render
   useEffect(() => {
-    if (typeof window !== 'undefined') {
-      // Load saved elements
+    try {
       const savedElements = localStorage.getItem('whiteboard-elements')
       if (savedElements) {
-        setElements(JSON.parse(savedElements))
+        const parsedElements = JSON.parse(savedElements)
+        setElements(parsedElements)
       }
 
-      // Load saved layers
       const savedLayers = localStorage.getItem('whiteboard-layers')
       if (savedLayers) {
         const parsedLayers = JSON.parse(savedLayers)
         setLayers(parsedLayers)
-        // Set active layer to the first visible layer
-        const firstVisibleLayer = parsedLayers.find((layer: Layer) => layer.visible)
-        if (firstVisibleLayer) {
-          setActiveLayer(firstVisibleLayer.id)
-        }
       }
+    } catch (e) {
+      console.error('Failed to load saved data:', e)
     }
-  }, []) // Empty dependency array to run only once on mount
+  }, [])
 
   // Save elements whenever they change
   useEffect(() => {
-    localStorage.setItem('whiteboard-elements', JSON.stringify(elements))
+    try {
+      localStorage.setItem('whiteboard-elements', JSON.stringify(elements))
+    } catch (e) {
+      console.error('Failed to save elements:', e)
+    }
   }, [elements])
 
   // Save layers whenever they change
   useEffect(() => {
-    localStorage.setItem('whiteboard-layers', JSON.stringify(layers))
+    try {
+      localStorage.setItem('whiteboard-layers', JSON.stringify(layers))
+    } catch (e) {
+      console.error('Failed to save layers:', e)
+    }
   }, [layers])
 
   // Update elements when active layer changes
@@ -324,10 +317,14 @@ export function Brainboard({ boardId }: BrainboardProps) {
 
     ws.addEventListener("message", (event: any) => {
       try {
+        if (!event.data) return
+
         const data = JSON.parse(event.data)
-        if (data.type === "draw") {
+        if (!data) return
+
+        if (data.type === "draw" && data.element) {
           setElements((prev) => [...prev, data.element])
-        } else if (data.type === "userMove") {
+        } else if (data.type === "userMove" && typeof data.userId === 'number' && typeof data.x === 'number' && typeof data.y === 'number') {
           setUsers((prev) => prev.map((user) => (user.id === data.userId ? { ...user, x: data.x, y: data.y } : user)))
         }
       } catch (e) {
@@ -828,7 +825,8 @@ export function Brainboard({ boardId }: BrainboardProps) {
   const addElement = (element: DrawingElement) => {
     // Add to history for undo/redo
     const newHistory = history.slice(0, historyIndex + 1)
-    newHistory.push([...elements])
+    const currentElements = [...elements]
+    newHistory.push(currentElements)
     setHistory(newHistory)
     setHistoryIndex(newHistory.length - 1)
 
@@ -861,26 +859,40 @@ export function Brainboard({ boardId }: BrainboardProps) {
 
   const handleUndo = () => {
     if (historyIndex >= 0) {
-      setElements(history[historyIndex])
-      setHistoryIndex(historyIndex - 1)
+      const previousElements = history[historyIndex]
+      if (previousElements) {
+        setElements(previousElements)
+        setHistoryIndex(historyIndex - 1)
+
+        // Update the active layer
+        setLayers(prevLayers =>
+          prevLayers.map(layer =>
+            layer.id === activeLayer
+              ? { ...layer, elements: previousElements }
+              : layer
+          )
+        )
+      }
     }
   }
 
   const handleRedo = () => {
     if (historyIndex < history.length - 1) {
-      setElements(history[historyIndex + 2])
-      setHistoryIndex(historyIndex + 1)
+      const nextElements = history[historyIndex + 1]
+      if (nextElements) {
+        setElements(nextElements)
+        setHistoryIndex(historyIndex + 1)
+
+        // Update the active layer
+        setLayers(prevLayers =>
+          prevLayers.map(layer =>
+            layer.id === activeLayer
+              ? { ...layer, elements: nextElements }
+              : layer
+          )
+        )
+      }
     }
-  }
-
-  const handleClear = () => {
-    // Add current state to history
-    const newHistory = [...history, [...elements]]
-    setHistory(newHistory)
-    setHistoryIndex(newHistory.length - 1)
-
-    // Clear the canvas
-    setElements([])
   }
 
   const handleEraseBoard = () => {
@@ -900,12 +912,46 @@ export function Brainboard({ boardId }: BrainboardProps) {
     setHistoryIndex(-1)
 
     // Clear localStorage
-    localStorage.removeItem('whiteboard-elements')
-    localStorage.removeItem('whiteboard-layers')
+    try {
+      localStorage.removeItem('whiteboard-elements')
+      localStorage.removeItem('whiteboard-layers')
+    } catch (e) {
+      console.error('Failed to clear localStorage:', e)
+    }
 
     // Redraw empty canvas
     if (context && canvasRef.current) {
-      drawElements()
+      context.clearRect(0, 0, canvasRef.current.width, canvasRef.current.height)
+      if (showGrid) {
+        drawGrid()
+      }
+    }
+  }
+
+  const handleClear = () => {
+    // Add current state to history
+    const newHistory = [...history, [...elements]]
+    setHistory(newHistory)
+    setHistoryIndex(newHistory.length - 1)
+
+    // Clear the canvas
+    setElements([])
+
+    // Update the active layer
+    setLayers(prevLayers =>
+      prevLayers.map(layer =>
+        layer.id === activeLayer
+          ? { ...layer, elements: [] }
+          : layer
+      )
+    )
+
+    // Redraw empty canvas
+    if (context && canvasRef.current) {
+      context.clearRect(0, 0, canvasRef.current.width, canvasRef.current.height)
+      if (showGrid) {
+        drawGrid()
+      }
     }
   }
 
