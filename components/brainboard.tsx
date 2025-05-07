@@ -1096,22 +1096,35 @@ export function Brainboard({ boardId }: BrainboardProps) {
 
     // Find elements that intersect with the eraser
     const elementsToRemove = currentLayer.elements.filter(element => {
+      // For all elements, check if the eraser point is within the eraser size
+      const isNearPoint = (pointX: number, pointY: number) => {
+        const dx = pointX - x
+        const dy = pointY - y
+        return Math.sqrt(dx * dx + dy * dy) < eraserSize
+      }
+
       switch (element.type) {
         case "pen":
           if (element.points) {
-            return element.points.some(point => {
-              const dx = point.x - x
-              const dy = point.y - y
-              return Math.sqrt(dx * dx + dy * dy) < eraserSize
-            })
+            return element.points.some(point => isNearPoint(point.x, point.y))
           }
           return false
 
         case "rectangle":
           if (element.x !== undefined && element.y !== undefined &&
             element.width !== undefined && element.height !== undefined) {
-            return x >= element.x && x <= element.x + element.width &&
-              y >= element.y && y <= element.y + element.height
+            // Check if eraser point is near any of the rectangle's edges or corners
+            const points = [
+              { x: element.x, y: element.y }, // top-left
+              { x: element.x + element.width, y: element.y }, // top-right
+              { x: element.x, y: element.y + element.height }, // bottom-left
+              { x: element.x + element.width, y: element.y + element.height }, // bottom-right
+              { x: element.x + element.width / 2, y: element.y }, // top-center
+              { x: element.x + element.width / 2, y: element.y + element.height }, // bottom-center
+              { x: element.x, y: element.y + element.height / 2 }, // left-center
+              { x: element.x + element.width, y: element.y + element.height / 2 } // right-center
+            ]
+            return points.some(point => isNearPoint(point.x, point.y))
           }
           return false
 
@@ -1122,14 +1135,23 @@ export function Brainboard({ boardId }: BrainboardProps) {
             const radius = element.width / 2
             const dx = x - centerX
             const dy = y - centerY
-            return Math.sqrt(dx * dx + dy * dy) <= radius
+            const distance = Math.sqrt(dx * dx + dy * dy)
+            // Check if eraser is near the circle's edge or center
+            return Math.abs(distance - radius) < eraserSize || distance < eraserSize
+          }
+          return false
+
+        case "arrow":
+          if (element.points && element.points.length > 1) {
+            // Check if eraser is near any point in the arrow's path
+            return element.points.some(point => isNearPoint(point.x, point.y))
           }
           return false
 
         case "text":
         case "sticker":
           if (element.x !== undefined && element.y !== undefined) {
-            return Math.abs(element.x - x) < eraserSize && Math.abs(element.y - y) < eraserSize
+            return isNearPoint(element.x, element.y)
           }
           return false
 
@@ -1137,8 +1159,18 @@ export function Brainboard({ boardId }: BrainboardProps) {
         case "note":
           if (element.x !== undefined && element.y !== undefined &&
             element.width !== undefined && element.height !== undefined) {
-            return x >= element.x && x <= element.x + element.width &&
-              y >= element.y && y <= element.y + element.height
+            // Check if eraser is near any corner or edge of the image/note
+            const points = [
+              { x: element.x, y: element.y }, // top-left
+              { x: element.x + element.width, y: element.y }, // top-right
+              { x: element.x, y: element.y + element.height }, // bottom-left
+              { x: element.x + element.width, y: element.y + element.height }, // bottom-right
+              { x: element.x + element.width / 2, y: element.y }, // top-center
+              { x: element.x + element.width / 2, y: element.y + element.height }, // bottom-center
+              { x: element.x, y: element.y + element.height / 2 }, // left-center
+              { x: element.x + element.width, y: element.y + element.height / 2 } // right-center
+            ]
+            return points.some(point => isNearPoint(point.x, point.y))
           }
           return false
 
