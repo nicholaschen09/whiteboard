@@ -626,13 +626,12 @@ export function Brainboard({ boardId }: BrainboardProps) {
     }
   }
 
-  // Update handleMouseDown to fix coordinate calculation
+  // Update handleMouseDown to handle eraser
   const handleMouseDown = (e: React.MouseEvent<HTMLCanvasElement>) => {
     if (!canvasRef.current) return
 
     const canvas = canvasRef.current
     const rect = canvas.getBoundingClientRect()
-    const dpr = window.devicePixelRatio || 1
 
     // Calculate the exact cursor position relative to the canvas
     let x = e.clientX - rect.left
@@ -647,6 +646,12 @@ export function Brainboard({ boardId }: BrainboardProps) {
 
     // Update current user position
     setUsers((prevUsers) => prevUsers.map((user) => (user.id === 1 ? { ...user, x, y } : user)))
+
+    // Handle eraser tool
+    if (currentTool === "eraser") {
+      handleErasing(x, y)
+      return
+    }
 
     const newElement: DrawingElement = {
       id: Date.now().toString(),
@@ -699,13 +704,12 @@ export function Brainboard({ boardId }: BrainboardProps) {
     setCurrentElement(newElement)
   }
 
-  // Update handleMouseMove to fix coordinate calculation
+  // Update handleMouseMove to remove eraser handling
   const handleMouseMove = (e: React.MouseEvent<HTMLCanvasElement>) => {
     if (!canvasRef.current) return
 
     const canvas = canvasRef.current
     const rect = canvas.getBoundingClientRect()
-    const dpr = window.devicePixelRatio || 1
 
     // Calculate the exact cursor position relative to the canvas
     let x = e.clientX - rect.left
@@ -1160,6 +1164,11 @@ export function Brainboard({ boardId }: BrainboardProps) {
       newHistory.push([...elements])
       setHistory(newHistory)
       setHistoryIndex(newHistory.length - 1)
+
+      // Redraw the canvas
+      if (context && canvasRef.current) {
+        drawElements()
+      }
     }
   }
 
