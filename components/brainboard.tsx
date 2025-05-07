@@ -106,7 +106,14 @@ export function Brainboard({ boardId }: BrainboardProps) {
   const [isDrawing, setIsDrawing] = useState(false)
   const [currentTool, setCurrentTool] = useState<Tool>("pen")
   const [currentColor, setCurrentColor] = useState("#4f46e5") // Indigo color
-  const [elements, setElements] = useState<DrawingElement[]>([])
+  const [elements, setElements] = useState<DrawingElement[]>(() => {
+    // Load elements from localStorage on initial render
+    if (typeof window !== 'undefined') {
+      const savedElements = localStorage.getItem('whiteboard-elements')
+      return savedElements ? JSON.parse(savedElements) : []
+    }
+    return []
+  })
   const [history, setHistory] = useState<DrawingElement[][]>([])
   const [historyIndex, setHistoryIndex] = useState(-1)
   const [currentElement, setCurrentElement] = useState<DrawingElement | null>(null)
@@ -121,6 +128,13 @@ export function Brainboard({ boardId }: BrainboardProps) {
   const { toast } = useToast()
   const [currentPosition, setCurrentPosition] = useState<{ x: number; y: number } | null>(null)
   const [activeTab, setActiveTab] = useState<string>("draw")
+
+  // Save elements to localStorage whenever they change
+  useEffect(() => {
+    if (elements.length > 0) {
+      localStorage.setItem('whiteboard-elements', JSON.stringify(elements))
+    }
+  }, [elements])
 
   // Add this near the top of the component, after the useState declarations
   useEffect(() => {
@@ -224,7 +238,10 @@ export function Brainboard({ boardId }: BrainboardProps) {
         if (container) {
           canvas.width = container.clientWidth
           canvas.height = container.clientHeight
-          drawElements()
+          // Draw elements immediately after resizing
+          if (ctx) {
+            drawElements()
+          }
         }
       }
 
@@ -233,18 +250,29 @@ export function Brainboard({ boardId }: BrainboardProps) {
 
       if (ctx) {
         setContext(ctx)
+        // Draw elements immediately after setting context
+        drawElements()
       }
 
       return () => {
         window.removeEventListener("resize", resizeCanvas)
       }
     }
-  }, [])
+  }, []) // Empty dependency array since we only want this to run once on mount
 
   // Redraw all elements when they change
   useEffect(() => {
-    drawElements()
-  }, [elements])
+    if (context && canvasRef.current) {
+      drawElements()
+    }
+  }, [elements, context]) // Add context to dependencies
+
+  // Add a new effect to handle initial load
+  useEffect(() => {
+    if (elements.length > 0 && context && canvasRef.current) {
+      drawElements()
+    }
+  }, [context]) // This will run when context is first set
 
   // Simulate other users moving around
   useEffect(() => {
