@@ -336,14 +336,26 @@ export function Brainboard({ boardId }: BrainboardProps) {
   useEffect(() => {
     if (canvasRef.current) {
       const canvas = canvasRef.current
-      const ctx = canvas.getContext("2d")
+      const ctx = canvas.getContext("2d", { willReadFrequently: true })
 
       // Set canvas size to match parent container
       const resizeCanvas = () => {
         const container = canvas.parentElement
         if (container) {
-          canvas.width = container.clientWidth
-          canvas.height = container.clientHeight
+          const dpr = window.devicePixelRatio || 1
+          const rect = container.getBoundingClientRect()
+
+          // Set the canvas size accounting for device pixel ratio
+          canvas.width = rect.width * dpr
+          canvas.height = rect.height * dpr
+
+          // Scale the context to ensure correct drawing
+          ctx?.scale(dpr, dpr)
+
+          // Set the canvas CSS size
+          canvas.style.width = `${rect.width}px`
+          canvas.style.height = `${rect.height}px`
+
           // Draw elements immediately after resizing
           if (ctx) {
             drawElements()
@@ -351,8 +363,11 @@ export function Brainboard({ boardId }: BrainboardProps) {
         }
       }
 
-      window.addEventListener("resize", resizeCanvas)
+      // Set initial size
       resizeCanvas()
+
+      // Add resize listener
+      window.addEventListener("resize", resizeCanvas)
 
       if (ctx) {
         setContext(ctx)
@@ -611,17 +626,17 @@ export function Brainboard({ boardId }: BrainboardProps) {
     }
   }
 
-  // Update handleMouseDown to handle eraser
+  // Update handleMouseDown to fix coordinate calculation
   const handleMouseDown = (e: React.MouseEvent<HTMLCanvasElement>) => {
     if (!canvasRef.current) return
 
     const canvas = canvasRef.current
     const rect = canvas.getBoundingClientRect()
-    const scaleX = canvas.width / canvas.clientWidth
-    const scaleY = canvas.height / canvas.clientHeight
+    const dpr = window.devicePixelRatio || 1
 
-    let x = (e.clientX - rect.left) * scaleX
-    let y = (e.clientY - rect.top) * scaleY
+    // Calculate the exact cursor position relative to the canvas
+    let x = e.clientX - rect.left
+    let y = e.clientY - rect.top
 
     // Apply grid snapping
     const snapped = snapToGridPoint(x, y)
@@ -632,11 +647,6 @@ export function Brainboard({ boardId }: BrainboardProps) {
 
     // Update current user position
     setUsers((prevUsers) => prevUsers.map((user) => (user.id === 1 ? { ...user, x, y } : user)))
-
-    if (currentTool === "eraser") {
-      handleErasing(x, y)
-      return
-    }
 
     const newElement: DrawingElement = {
       id: Date.now().toString(),
@@ -653,20 +663,10 @@ export function Brainboard({ boardId }: BrainboardProps) {
         break
 
       case "rectangle":
-      case "circle":
-      case "note":
         newElement.x = x
         newElement.y = y
         newElement.width = 0
         newElement.height = 0
-        if (currentTool === "note") {
-          const text = prompt("Enter note text:", "")
-          if (text) {
-            newElement.text = text
-          } else {
-            return // Cancel if no text
-          }
-        }
         break
 
       case "text":
@@ -699,17 +699,17 @@ export function Brainboard({ boardId }: BrainboardProps) {
     setCurrentElement(newElement)
   }
 
-  // Update handleMouseMove to not handle erasing
+  // Update handleMouseMove to fix coordinate calculation
   const handleMouseMove = (e: React.MouseEvent<HTMLCanvasElement>) => {
     if (!canvasRef.current) return
 
     const canvas = canvasRef.current
     const rect = canvas.getBoundingClientRect()
-    const scaleX = canvas.width / canvas.clientWidth
-    const scaleY = canvas.height / canvas.clientHeight
+    const dpr = window.devicePixelRatio || 1
 
-    let x = (e.clientX - rect.left) * scaleX
-    let y = (e.clientY - rect.top) * scaleY
+    // Calculate the exact cursor position relative to the canvas
+    let x = e.clientX - rect.left
+    let y = e.clientY - rect.top
 
     // Apply grid snapping
     const snapped = snapToGridPoint(x, y)
@@ -719,9 +719,6 @@ export function Brainboard({ boardId }: BrainboardProps) {
     // Update current user position
     setUsers((prevUsers) => prevUsers.map((user) => (user.id === 1 ? { ...user, x, y } : user)))
 
-    // Don't handle erasing in mouse move
-    if (currentTool === "eraser" as Tool) return
-
     // If not drawing, just update cursor position and return
     if (!isDrawing || !currentElement) return
 
@@ -730,13 +727,10 @@ export function Brainboard({ boardId }: BrainboardProps) {
     switch (currentTool) {
       case "pen":
       case "arrow":
-      case "eraser":
         updatedElement.points = [...(updatedElement.points || []), { x, y }]
         break
 
       case "rectangle":
-      case "circle":
-      case "note":
         if (updatedElement.x !== undefined && updatedElement.y !== undefined) {
           updatedElement.width = x - updatedElement.x
           updatedElement.height = y - updatedElement.y
@@ -757,7 +751,6 @@ export function Brainboard({ boardId }: BrainboardProps) {
 
       switch (updatedElement.type) {
         case "pen":
-        case "eraser":
           if (updatedElement.points && updatedElement.points.length > 0) {
             context.beginPath()
             context.moveTo(updatedElement.points[0].x, updatedElement.points[0].y)
@@ -783,20 +776,6 @@ export function Brainboard({ boardId }: BrainboardProps) {
           }
           break
 
-        case "circle":
-          if (updatedElement.x !== undefined && updatedElement.y !== undefined && updatedElement.width !== undefined) {
-            context.beginPath()
-            context.arc(
-              updatedElement.x + updatedElement.width / 2,
-              updatedElement.y + updatedElement.width / 2,
-              Math.abs(updatedElement.width / 2),
-              0,
-              Math.PI * 2,
-            )
-            context.stroke()
-          }
-          break
-
         case "arrow":
           if (updatedElement.points && updatedElement.points.length > 1) {
             const start = updatedElement.points[0]
@@ -816,25 +795,6 @@ export function Brainboard({ boardId }: BrainboardProps) {
             context.lineTo(end.x - 15 * Math.cos(angle + Math.PI / 6), end.y - 15 * Math.sin(angle + Math.PI / 6))
             context.closePath()
             context.fill()
-          }
-          break
-
-        case "note":
-          if (
-            updatedElement.x !== undefined &&
-            updatedElement.y !== undefined &&
-            updatedElement.width !== undefined &&
-            updatedElement.height !== undefined &&
-            updatedElement.text
-          ) {
-            // Draw sticky note background
-            context.fillStyle = updatedElement.color + "80" // Add transparency
-            context.fillRect(updatedElement.x, updatedElement.y, updatedElement.width, updatedElement.height)
-
-            // Draw text
-            context.fillStyle = "#000000"
-            context.font = "14px Inter, sans-serif"
-            context.fillText(updatedElement.text, updatedElement.x + 10, updatedElement.y + 20)
           }
           break
       }
@@ -1204,7 +1164,7 @@ export function Brainboard({ boardId }: BrainboardProps) {
   }
 
   return (
-    <div className="flex flex-col h-[80vh] border rounded-lg overflow-hidden bg-slate-50 shadow-lg">
+    <div className="flex flex-col h-[95vh] border rounded-lg overflow-hidden bg-slate-50 shadow-lg">
       <div className="flex items-center justify-between p-2 border-b bg-slate-50">
         <Tabs defaultValue="draw" className="w-full" onValueChange={setActiveTab}>
           <div className="flex items-center justify-between w-full">
@@ -1547,6 +1507,7 @@ export function Brainboard({ boardId }: BrainboardProps) {
           onMouseMove={handleMouseMove}
           onMouseUp={handleMouseUp}
           onMouseLeave={handleMouseUp}
+          style={{ touchAction: 'none' }}
         />
 
         {/* User cursors */}
