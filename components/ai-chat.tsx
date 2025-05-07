@@ -54,40 +54,22 @@ export function AIChat({ onClose }: AIChatProps) {
                 },
                 body: JSON.stringify({
                     contents: [{
-                        role: "user",
                         parts: [{
                             text: userMessage
                         }]
                     }],
                     generationConfig: {
-                        temperature: 0.7,
-                        topK: 40,
-                        topP: 0.95,
-                        maxOutputTokens: 1024,
-                    },
-                    safetySettings: [
-                        {
-                            category: "HARM_CATEGORY_HARASSMENT",
-                            threshold: "BLOCK_MEDIUM_AND_ABOVE"
-                        },
-                        {
-                            category: "HARM_CATEGORY_HATE_SPEECH",
-                            threshold: "BLOCK_MEDIUM_AND_ABOVE"
-                        },
-                        {
-                            category: "HARM_CATEGORY_SEXUALLY_EXPLICIT",
-                            threshold: "BLOCK_MEDIUM_AND_ABOVE"
-                        },
-                        {
-                            category: "HARM_CATEGORY_DANGEROUS_CONTENT",
-                            threshold: "BLOCK_MEDIUM_AND_ABOVE"
-                        }
-                    ]
+                        temperature: 0.9,
+                        topK: 1,
+                        topP: 1,
+                        maxOutputTokens: 2048,
+                    }
                 })
             })
 
             if (!response.ok) {
                 const errorData = await response.json()
+                console.error('API Error Response:', errorData) // For debugging
                 throw new Error(errorData.error?.message || 'Failed to get response from AI')
             }
 
