@@ -2063,6 +2063,7 @@ export function Brainboard({ boardId }: BrainboardProps) {
   const [showNoteInput, setShowNoteInput] = useState(false)
   const [noteInputValue, setNoteInputValue] = useState("")
   const [notePosition, setNotePosition] = useState({ x: 0, y: 0 })
+  const [noteColor, setNoteColor] = useState("#FFEB3B") // Default yellow color
 
   // Add double-click handler for editing notes
   const handleDoubleClick = (e: React.MouseEvent<HTMLCanvasElement>) => {
@@ -2094,7 +2095,7 @@ export function Brainboard({ boardId }: BrainboardProps) {
     }
   }
 
-  // Add function to create note
+  // Update createNote function to use selected color
   const createNote = () => {
     if (!canvasRef.current || !noteInputValue.trim()) return
 
@@ -2112,7 +2113,7 @@ export function Brainboard({ boardId }: BrainboardProps) {
       y,
       width: 200,
       height: 150,
-      color: "#FFEB3B", // Solid yellow color
+      color: noteColor, // Use the selected color
       text: noteInputValue,
       userId: 1,
       lineWidth: 2
@@ -2622,17 +2623,25 @@ export function Brainboard({ boardId }: BrainboardProps) {
               <DialogTitle>Add Sticky Note</DialogTitle>
             </DialogHeader>
             <div className="grid gap-4 py-4">
-              <Input
-                value={noteInputValue}
-                onChange={(e) => setNoteInputValue(e.target.value)}
-                placeholder="Enter your note..."
-                autoFocus
-                onKeyDown={(e) => {
-                  if (e.key === "Enter") {
-                    createNote()
-                  }
-                }}
-              />
+              <div className="space-y-2">
+                <label className="text-sm font-medium">Note Color</label>
+                <div className="flex items-center gap-2">
+                  <ColorPicker color={noteColor} onChange={setNoteColor} />
+                  <div className="flex-1">
+                    <Input
+                      value={noteInputValue}
+                      onChange={(e) => setNoteInputValue(e.target.value)}
+                      placeholder="Enter your note..."
+                      autoFocus
+                      onKeyDown={(e) => {
+                        if (e.key === "Enter") {
+                          createNote()
+                        }
+                      }}
+                    />
+                  </div>
+                </div>
+              </div>
               <div className="flex justify-end gap-2">
                 <Button variant="outline" onClick={() => {
                   setShowNoteInput(false)
