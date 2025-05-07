@@ -174,6 +174,9 @@ export function Brainboard({ boardId }: BrainboardProps) {
   const [showTextInput, setShowTextInput] = useState(false)
   const [textInputPosition, setTextInputPosition] = useState<{ x: number; y: number } | null>(null)
   const [textInputValue, setTextInputValue] = useState("")
+  const [selectedElement, setSelectedElement] = useState<DrawingElement | null>(null)
+  const [isDragging, setIsDragging] = useState(false)
+  const [dragOffset, setDragOffset] = useState({ x: 0, y: 0 })
 
   // Add temporary canvas ref
   const tempCanvasRef = useRef<HTMLCanvasElement>(null)
@@ -560,6 +563,19 @@ export function Brainboard({ boardId }: BrainboardProps) {
                 context.font = "16px Inter, sans-serif"
                 context.fillStyle = element.color
                 context.fillText(element.text, element.x, element.y)
+
+                // Draw selection indicator if this element is selected
+                if (selectedElement && selectedElement.id === element.id) {
+                  context.strokeStyle = "#3b82f6" // Blue color for selection
+                  context.lineWidth = 1
+                  const metrics = context.measureText(element.text)
+                  context.strokeRect(
+                    element.x - 2,
+                    element.y - 16,
+                    metrics.width + 4,
+                    20
+                  )
+                }
               }
               break
 
@@ -690,6 +706,34 @@ export function Brainboard({ boardId }: BrainboardProps) {
       return
     }
 
+    // Handle select tool
+    if (currentTool === "select") {
+      // Check if we clicked on any element
+      const clickedElement = elements.find(element => {
+        if (element.type === "text") {
+          // For text elements, check if click is near the text position
+          if (element.x !== undefined && element.y !== undefined) {
+            const dx = x - element.x
+            const dy = y - element.y
+            return Math.sqrt(dx * dx + dy * dy) < 20 // 20px click radius
+          }
+        }
+        return false
+      })
+
+      if (clickedElement) {
+        setSelectedElement(clickedElement)
+        setIsDragging(true)
+        setDragOffset({
+          x: x - (clickedElement.x || 0),
+          y: y - (clickedElement.y || 0)
+        })
+        return
+      } else {
+        setSelectedElement(null)
+      }
+    }
+
     const newElement: DrawingElement = {
       id: Date.now().toString(),
       type: currentTool,
@@ -712,7 +756,6 @@ export function Brainboard({ boardId }: BrainboardProps) {
         break
 
       case "select":
-        // Handle selection (not implemented in this demo)
         return
     }
 
@@ -769,6 +812,43 @@ export function Brainboard({ boardId }: BrainboardProps) {
 
     // Update current user position
     setUsers((prevUsers) => prevUsers.map((user) => (user.id === 1 ? { ...user, x, y } : user)))
+
+    // Handle dragging selected element
+    if (isDragging && selectedElement) {
+      const newX = x - dragOffset.x
+      const newY = y - dragOffset.y
+
+      // Update the element's position
+      setElements(prevElements =>
+        prevElements.map(element =>
+          element.id === selectedElement.id
+            ? { ...element, x: newX, y: newY }
+            : element
+        )
+      )
+
+      // Update the layer's elements
+      setLayers(prevLayers =>
+        prevLayers.map(layer =>
+          layer.id === activeLayer
+            ? {
+              ...layer,
+              elements: layer.elements.map(element =>
+                element.id === selectedElement.id
+                  ? { ...element, x: newX, y: newY }
+                  : element
+              )
+            }
+            : layer
+        )
+      )
+
+      // Redraw the canvas
+      if (context) {
+        drawElements()
+      }
+      return
+    }
 
     // If not drawing, just update cursor position and return
     if (!isDrawing || !currentElement) return
@@ -853,6 +933,11 @@ export function Brainboard({ boardId }: BrainboardProps) {
   }
 
   const handleMouseUp = () => {
+    if (isDragging) {
+      setIsDragging(false)
+      setSelectedElement(null)
+    }
+
     if (!isDrawing || !currentElement) return
 
     addElement(currentElement)
