@@ -6,8 +6,6 @@ Whiteboard is a collaborative whiteboard application that enables real-time brai
 
 ### Real-time Collaboration
 - Multiple users can work on the same board simultaneously
-- See other users' cursors and changes in real-time
-- User presence indicators show who's currently active
 
 ### Rich Drawing Tools
 - Pen tool with adjustable line width and color
@@ -92,33 +90,6 @@ yarn dev
 - **Real-time Communication**: WebSockets (Socket.io in production)
 - **UI Components**: Lucide React icons
 
-## Roadmap
-
-- [ ] User authentication and personal board management
-- [ ] Persistent storage with database integration
-- [ ] Advanced shape tools and drawing options
-- [ ] Templates for common brainstorming activities
-- [ ] Presentation mode
-- [ ] Mobile app support
-- [ ] Voice and video chat integration
-
-## Contributing
-
-Contributions are welcome! Please feel free to submit a Pull Request.
-
-1. Fork the repository
-2. Create your feature branch (`git checkout -b feature/amazing-feature`)
-3. Commit your changes (`git commit -m 'Add some amazing feature'`)
-4. Push to the branch (`git push origin feature/amazing-feature`)
-5. Open a Pull Request
-
 ## License
 
 This project is licensed under the MIT License - see the LICENSE file for details.
-
-## Acknowledgments
-
-- Inspired by collaborative tools like Miro, FigJam, and Google Jamboard
-- Built with Next.js and React
-- UI components from shadcn/ui
-- Icons from Lucide React
