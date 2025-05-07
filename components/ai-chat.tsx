@@ -20,7 +20,7 @@ export function AIChat({ onClose }: AIChatProps) {
     const [isLoading, setIsLoading] = useState(false)
     const scrollRef = useRef<HTMLDivElement>(null)
 
-    const GEMINI_API_KEY = "AIzaSyAtCuog5tDMwUEUIWPFZcYOd-I7E3tMtPo"
+    const GEMINI_API_KEY = process.env.NEXT_PUBLIC_GEMINI_API_KEY
     const GEMINI_API_URL = "https://generativelanguage.googleapis.com/v1beta/models/gemini-pro:generateContent"
 
     useEffect(() => {
@@ -32,6 +32,14 @@ export function AIChat({ onClose }: AIChatProps) {
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault()
         if (!input.trim() || isLoading) return
+
+        if (!GEMINI_API_KEY) {
+            setMessages(prev => [...prev, {
+                role: "assistant",
+                content: "Error: Gemini API key is not configured. Please check your environment variables."
+            }])
+            return
+        }
 
         const userMessage = input.trim()
         setInput("")
@@ -46,22 +54,57 @@ export function AIChat({ onClose }: AIChatProps) {
                 },
                 body: JSON.stringify({
                     contents: [{
+                        role: "user",
                         parts: [{
                             text: userMessage
                         }]
-                    }]
+                    }],
+                    generationConfig: {
+                        temperature: 0.7,
+                        topK: 40,
+                        topP: 0.95,
+                        maxOutputTokens: 1024,
+                    },
+                    safetySettings: [
+                        {
+                            category: "HARM_CATEGORY_HARASSMENT",
+                            threshold: "BLOCK_MEDIUM_AND_ABOVE"
+                        },
+                        {
+                            category: "HARM_CATEGORY_HATE_SPEECH",
+                            threshold: "BLOCK_MEDIUM_AND_ABOVE"
+                        },
+                        {
+                            category: "HARM_CATEGORY_SEXUALLY_EXPLICIT",
+                            threshold: "BLOCK_MEDIUM_AND_ABOVE"
+                        },
+                        {
+                            category: "HARM_CATEGORY_DANGEROUS_CONTENT",
+                            threshold: "BLOCK_MEDIUM_AND_ABOVE"
+                        }
+                    ]
                 })
             })
 
-            const data = await response.json()
-            const aiResponse = data.candidates?.[0]?.content?.parts?.[0]?.text || "Sorry, I couldn't process that request."
+            if (!response.ok) {
+                const errorData = await response.json()
+                throw new Error(errorData.error?.message || 'Failed to get response from AI')
+            }
 
+            const data = await response.json()
+            console.log('API Response:', data) // For debugging
+
+            if (!data.candidates?.[0]?.content?.parts?.[0]?.text) {
+                throw new Error('Invalid response format from AI')
+            }
+
+            const aiResponse = data.candidates[0].content.parts[0].text
             setMessages(prev => [...prev, { role: "assistant", content: aiResponse }])
         } catch (error) {
             console.error("Error calling Gemini API:", error)
             setMessages(prev => [...prev, {
                 role: "assistant",
-                content: "Sorry, I encountered an error while processing your request."
+                content: `Sorry, I encountered an error: ${error instanceof Error ? error.message : 'Unknown error'}`
             }])
         } finally {
             setIsLoading(false)
