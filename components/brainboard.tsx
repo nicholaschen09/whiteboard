@@ -127,14 +127,7 @@ export function Brainboard({ boardId }: BrainboardProps) {
   const [isDrawing, setIsDrawing] = useState(false)
   const [currentTool, setCurrentTool] = useState<Tool>("pen")
   const [currentColor, setCurrentColor] = useState("#4B5563") // Slate-600 grey color
-  const [elements, setElements] = useState<DrawingElement[]>(() => {
-    // Load elements from localStorage on initial render
-    if (typeof window !== 'undefined') {
-      const savedElements = localStorage.getItem('whiteboard-elements')
-      return savedElements ? JSON.parse(savedElements) : []
-    }
-    return []
-  })
+  const [elements, setElements] = useState<DrawingElement[]>([])
   const [history, setHistory] = useState<DrawingElement[][]>([])
   const [historyIndex, setHistoryIndex] = useState(-1)
   const [currentElement, setCurrentElement] = useState<DrawingElement | null>(null)
@@ -170,46 +163,50 @@ export function Brainboard({ boardId }: BrainboardProps) {
   const tempCanvasRef = useRef<HTMLCanvasElement>(null)
   const [tempContext, setTempContext] = useState<CanvasRenderingContext2D | null>(null)
 
-  // Save elements to localStorage whenever they change
+  // Load saved data on initial render
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      // Load saved elements
+      const savedElements = localStorage.getItem('whiteboard-elements')
+      if (savedElements) {
+        setElements(JSON.parse(savedElements))
+      }
+
+      // Load saved layers
+      const savedLayers = localStorage.getItem('whiteboard-layers')
+      if (savedLayers) {
+        const parsedLayers = JSON.parse(savedLayers)
+        setLayers(parsedLayers)
+        // Set active layer to the first visible layer
+        const firstVisibleLayer = parsedLayers.find((layer: Layer) => layer.visible)
+        if (firstVisibleLayer) {
+          setActiveLayer(firstVisibleLayer.id)
+        }
+      }
+    }
+  }, []) // Empty dependency array to run only once on mount
+
+  // Update the save effect to be more reliable
   useEffect(() => {
     if (elements.length > 0) {
       localStorage.setItem('whiteboard-elements', JSON.stringify(elements))
     }
   }, [elements])
 
-  // Update elements state to use layers
-  useEffect(() => {
-    if (elements.length > 0) {
-      setLayers(prevLayers => {
-        const updatedLayers = [...prevLayers]
-        const activeLayerIndex = updatedLayers.findIndex(layer => layer.id === activeLayer)
-        if (activeLayerIndex !== -1) {
-          updatedLayers[activeLayerIndex] = {
-            ...updatedLayers[activeLayerIndex],
-            elements: elements
-          }
-        }
-        return updatedLayers
-      })
-    }
-  }, [elements])
-
-  // Save layers to localStorage
+  // Update the layers save effect to be more reliable
   useEffect(() => {
     if (layers.length > 0) {
       localStorage.setItem('whiteboard-layers', JSON.stringify(layers))
     }
   }, [layers])
 
-  // Load layers from localStorage on initial render
+  // Update the elements state when active layer changes
   useEffect(() => {
-    if (typeof window !== 'undefined') {
-      const savedLayers = localStorage.getItem('whiteboard-layers')
-      if (savedLayers) {
-        setLayers(JSON.parse(savedLayers))
-      }
+    const currentLayer = layers.find(layer => layer.id === activeLayer)
+    if (currentLayer) {
+      setElements(currentLayer.elements)
     }
-  }, [])
+  }, [activeLayer, layers])
 
   // Add this near the top of the component, after the useState declarations
   useEffect(() => {
