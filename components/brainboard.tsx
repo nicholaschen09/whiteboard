@@ -1421,10 +1421,10 @@ export function Brainboard({ boardId }: BrainboardProps) {
             <Tooltip>
               <TooltipTrigger asChild>
                 <Button
-                  variant={currentTool === "select" ? "default" : "ghost"}
+                  variant="ghost"
                   size="sm"
                   onClick={() => setCurrentTool("select")}
-                  className="rounded-md"
+                  className={cn("rounded-md", currentTool === "select" && "bg-slate-200 hover:bg-slate-300")}
                 >
                   <MousePointer className="h-4 w-4" />
                 </Button>
@@ -1437,10 +1437,10 @@ export function Brainboard({ boardId }: BrainboardProps) {
             <Tooltip>
               <TooltipTrigger asChild>
                 <Button
-                  variant={currentTool === "pen" ? "default" : "ghost"}
+                  variant="ghost"
                   size="sm"
                   onClick={() => setCurrentTool("pen")}
-                  className="rounded-md"
+                  className={cn("rounded-md", currentTool === "pen" && "bg-slate-200 hover:bg-slate-300")}
                 >
                   <Pencil className="h-4 w-4" />
                 </Button>
@@ -1453,10 +1453,10 @@ export function Brainboard({ boardId }: BrainboardProps) {
             <Tooltip>
               <TooltipTrigger asChild>
                 <Button
-                  variant={currentTool === "eraser" ? "default" : "ghost"}
+                  variant="ghost"
                   size="sm"
                   onClick={() => setCurrentTool("eraser")}
-                  className="rounded-md"
+                  className={cn("rounded-md", currentTool === "eraser" && "bg-slate-200 hover:bg-slate-300")}
                 >
                   <Eraser className="h-4 w-4" />
                 </Button>
@@ -1471,10 +1471,10 @@ export function Brainboard({ boardId }: BrainboardProps) {
             <Tooltip>
               <TooltipTrigger asChild>
                 <Button
-                  variant={currentTool === "rectangle" ? "default" : "ghost"}
+                  variant="ghost"
                   size="sm"
                   onClick={() => setCurrentTool("rectangle")}
-                  className="rounded-md"
+                  className={cn("rounded-md", currentTool === "rectangle" && "bg-slate-200 hover:bg-slate-300")}
                 >
                   <Square className="h-4 w-4" />
                 </Button>
@@ -1487,10 +1487,10 @@ export function Brainboard({ boardId }: BrainboardProps) {
             <Tooltip>
               <TooltipTrigger asChild>
                 <Button
-                  variant={currentTool === "circle" ? "default" : "ghost"}
+                  variant="ghost"
                   size="sm"
                   onClick={() => setCurrentTool("circle")}
-                  className="rounded-md"
+                  className={cn("rounded-md", currentTool === "circle" && "bg-slate-200 hover:bg-slate-300")}
                 >
                   <Circle className="h-4 w-4" />
                 </Button>
@@ -1503,10 +1503,10 @@ export function Brainboard({ boardId }: BrainboardProps) {
             <Tooltip>
               <TooltipTrigger asChild>
                 <Button
-                  variant={currentTool === "arrow" ? "default" : "ghost"}
+                  variant="ghost"
                   size="sm"
                   onClick={() => setCurrentTool("arrow")}
-                  className="rounded-md"
+                  className={cn("rounded-md", currentTool === "arrow" && "bg-slate-200 hover:bg-slate-300")}
                 >
                   <ArrowUpRight className="h-4 w-4" />
                 </Button>
@@ -1521,10 +1521,10 @@ export function Brainboard({ boardId }: BrainboardProps) {
             <Tooltip>
               <TooltipTrigger asChild>
                 <Button
-                  variant={currentTool === "text" ? "default" : "ghost"}
+                  variant="ghost"
                   size="sm"
                   onClick={() => setCurrentTool("text")}
-                  className="rounded-md"
+                  className={cn("rounded-md", currentTool === "text" && "bg-slate-200 hover:bg-slate-300")}
                 >
                   <Type className="h-4 w-4" />
                 </Button>
@@ -1537,10 +1537,10 @@ export function Brainboard({ boardId }: BrainboardProps) {
             <Tooltip>
               <TooltipTrigger asChild>
                 <Button
-                  variant={currentTool === "note" ? "default" : "ghost"}
+                  variant="ghost"
                   size="sm"
                   onClick={() => setCurrentTool("note")}
-                  className="rounded-md"
+                  className={cn("rounded-md", currentTool === "note" && "bg-slate-200 hover:bg-slate-300")}
                 >
                   <StickyNote className="h-4 w-4" />
                 </Button>
@@ -1553,10 +1553,10 @@ export function Brainboard({ boardId }: BrainboardProps) {
             <Tooltip>
               <TooltipTrigger asChild>
                 <Button
-                  variant={currentTool === "sticker" ? "default" : "ghost"}
+                  variant="ghost"
                   size="sm"
                   onClick={() => setCurrentTool("sticker")}
-                  className="rounded-md"
+                  className={cn("rounded-md", currentTool === "sticker" && "bg-slate-200 hover:bg-slate-300")}
                 >
                   <Sticker className="h-4 w-4" />
                 </Button>
@@ -1569,10 +1569,10 @@ export function Brainboard({ boardId }: BrainboardProps) {
             <Tooltip>
               <TooltipTrigger asChild>
                 <Button
-                  variant={currentTool === "image" ? "default" : "ghost"}
+                  variant="ghost"
                   size="sm"
                   onClick={() => setCurrentTool("image")}
-                  className="rounded-md"
+                  className={cn("rounded-md", currentTool === "image" && "bg-slate-200 hover:bg-slate-300")}
                 >
                   <ImageIcon className="h-4 w-4" />
                 </Button>
@@ -1694,10 +1694,10 @@ export function Brainboard({ boardId }: BrainboardProps) {
             <Tooltip>
               <TooltipTrigger asChild>
                 <Button
-                  variant={showUsers ? "default" : "ghost"}
+                  variant={showUsers ? "secondary" : "ghost"}
                   size="sm"
                   onClick={() => setShowUsers(!showUsers)}
-                  className="rounded-md relative"
+                  className={cn("rounded-md relative", showUsers && "bg-slate-200 hover:bg-slate-300")}
                 >
                   <Users className="h-4 w-4" />
                   <span className="absolute top-0.5 -right-0.5 bg-primary text-primary-foreground rounded-full w-4 h-4 text-[10px] flex items-center justify-center">
