@@ -127,7 +127,13 @@ export function Brainboard({ boardId }: BrainboardProps) {
   const [isDrawing, setIsDrawing] = useState(false)
   const [currentTool, setCurrentTool] = useState<Tool>("pen")
   const [currentColor, setCurrentColor] = useState("#4B5563") // Slate-600 grey color
-  const [elements, setElements] = useState<DrawingElement[]>([])
+  const [elements, setElements] = useState<DrawingElement[]>(() => {
+    if (typeof window !== 'undefined') {
+      const savedElements = localStorage.getItem('whiteboard-elements')
+      return savedElements ? JSON.parse(savedElements) : []
+    }
+    return []
+  })
   const [history, setHistory] = useState<DrawingElement[][]>([])
   const [historyIndex, setHistoryIndex] = useState(-1)
   const [currentElement, setCurrentElement] = useState<DrawingElement | null>(null)
@@ -143,15 +149,22 @@ export function Brainboard({ boardId }: BrainboardProps) {
   const [currentPosition, setCurrentPosition] = useState<{ x: number; y: number } | null>(null)
   const [activeTab, setActiveTab] = useState<string>("draw")
   const [showSettings, setShowSettings] = useState(false)
-  const [layers, setLayers] = useState<Layer[]>([
-    {
+  const [layers, setLayers] = useState<Layer[]>(() => {
+    if (typeof window !== 'undefined') {
+      const savedLayers = localStorage.getItem('whiteboard-layers')
+      if (savedLayers) {
+        const parsedLayers = JSON.parse(savedLayers)
+        return parsedLayers
+      }
+    }
+    return [{
       id: "default",
       name: "Default Layer",
       visible: true,
       locked: false,
       elements: []
-    }
-  ])
+    }]
+  })
   const [showLayers, setShowLayers] = useState(false)
   const [activeLayer, setActiveLayer] = useState<string>("default")
   const [showGrid, setShowGrid] = useState(false)
@@ -186,27 +199,48 @@ export function Brainboard({ boardId }: BrainboardProps) {
     }
   }, []) // Empty dependency array to run only once on mount
 
-  // Update the save effect to be more reliable
+  // Save elements whenever they change
   useEffect(() => {
-    if (elements.length > 0) {
-      localStorage.setItem('whiteboard-elements', JSON.stringify(elements))
-    }
+    localStorage.setItem('whiteboard-elements', JSON.stringify(elements))
   }, [elements])
 
-  // Update the layers save effect to be more reliable
+  // Save layers whenever they change
   useEffect(() => {
-    if (layers.length > 0) {
-      localStorage.setItem('whiteboard-layers', JSON.stringify(layers))
-    }
+    localStorage.setItem('whiteboard-layers', JSON.stringify(layers))
   }, [layers])
 
-  // Update the elements state when active layer changes
+  // Update elements when active layer changes
   useEffect(() => {
     const currentLayer = layers.find(layer => layer.id === activeLayer)
     if (currentLayer) {
       setElements(currentLayer.elements)
     }
-  }, [activeLayer, layers])
+  }, [activeLayer])
+
+  // Update layers when elements change
+  useEffect(() => {
+    setLayers(prevLayers => {
+      return prevLayers.map(layer => {
+        if (layer.id === activeLayer) {
+          return {
+            ...layer,
+            elements: elements
+          }
+        }
+        return layer
+      })
+    })
+  }, [elements, activeLayer])
+
+  // Set initial active layer
+  useEffect(() => {
+    if (layers.length > 0) {
+      const firstVisibleLayer = layers.find(layer => layer.visible)
+      if (firstVisibleLayer) {
+        setActiveLayer(firstVisibleLayer.id)
+      }
+    }
+  }, []) // Run only once on mount
 
   // Add this near the top of the component, after the useState declarations
   useEffect(() => {
@@ -903,8 +937,21 @@ export function Brainboard({ boardId }: BrainboardProps) {
     setHistory(newHistory)
     setHistoryIndex(newHistory.length - 1)
 
-    // Add the new element
-    setElements((prevElements) => [...prevElements, element])
+    // Add the new element to the active layer
+    setLayers(prevLayers => {
+      return prevLayers.map(layer => {
+        if (layer.id === activeLayer) {
+          return {
+            ...layer,
+            elements: [...layer.elements, element]
+          }
+        }
+        return layer
+      })
+    })
+
+    // Update elements state
+    setElements(prevElements => [...prevElements, element])
 
     // Send to WebSocket if connected
     if (socket && isConnected) {
