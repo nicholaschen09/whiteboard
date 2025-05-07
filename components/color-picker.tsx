@@ -67,7 +67,7 @@ export function ColorPicker({ color, onChange }: ColorPickerProps) {
                 key={c}
                 className={cn(
                   "w-6 h-6 rounded-md border border-muted-foreground/20 focus:outline-none focus:ring-2 focus:ring-primary transition-all relative",
-                  color === c && "ring-2 ring-primary"
+                  color === c && "border-primary"
                 )}
                 style={{ backgroundColor: c }}
                 onClick={() => {
@@ -91,7 +91,7 @@ export function ColorPicker({ color, onChange }: ColorPickerProps) {
                     key={c}
                     className={cn(
                       "w-6 h-6 rounded-md border border-muted-foreground/20 focus:outline-none focus:ring-2 focus:ring-primary transition-all relative",
-                      color === c && "ring-2 ring-primary"
+                      color === c && "border-primary"
                     )}
                     style={{ backgroundColor: c }}
                     onClick={() => {
