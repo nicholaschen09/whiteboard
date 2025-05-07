@@ -1597,13 +1597,17 @@ export function Brainboard({ boardId }: BrainboardProps) {
   const handleSave = () => {
     try {
       // Save all layers and their elements
-      localStorage.setItem('whiteboard-layers', JSON.stringify(layers))
-      localStorage.setItem('whiteboard-elements', JSON.stringify(elements))
-      localStorage.setItem('whiteboard-history', JSON.stringify(history))
-      localStorage.setItem('whiteboard-history-index', JSON.stringify(historyIndex))
-      localStorage.setItem('whiteboard-active-layer', activeLayer)
-      localStorage.setItem('whiteboard-current-color', currentColor)
-      localStorage.setItem('whiteboard-line-width', lineWidth.toString())
+      const saveData = {
+        layers,
+        elements,
+        history,
+        historyIndex,
+        activeLayer,
+        currentColor,
+        lineWidth
+      }
+
+      localStorage.setItem('whiteboard-data', JSON.stringify(saveData))
 
       toast({
         title: "Saved!",
@@ -1619,60 +1623,79 @@ export function Brainboard({ boardId }: BrainboardProps) {
     }
   }
 
-  // Add this after the other useEffect hooks
+  // Replace the existing load effect with this enhanced version
   useEffect(() => {
     try {
-      // Load saved data
-      const savedLayers = localStorage.getItem('whiteboard-layers')
-      const savedElements = localStorage.getItem('whiteboard-elements')
-      const savedHistory = localStorage.getItem('whiteboard-history')
-      const savedHistoryIndex = localStorage.getItem('whiteboard-history-index')
-      const savedActiveLayer = localStorage.getItem('whiteboard-active-layer')
-      const savedColor = localStorage.getItem('whiteboard-current-color')
-      const savedLineWidth = localStorage.getItem('whiteboard-line-width')
+      const savedData = localStorage.getItem('whiteboard-data')
+      if (savedData) {
+        const data = JSON.parse(savedData)
 
-      if (savedLayers) {
-        setLayers(JSON.parse(savedLayers))
-      }
-      if (savedElements) {
-        setElements(JSON.parse(savedElements))
-      }
-      if (savedHistory) {
-        setHistory(JSON.parse(savedHistory))
-      }
-      if (savedHistoryIndex) {
-        setHistoryIndex(JSON.parse(savedHistoryIndex))
-      }
-      if (savedActiveLayer) {
-        setActiveLayer(savedActiveLayer)
-      }
-      if (savedColor) {
-        setCurrentColor(savedColor)
-      }
-      if (savedLineWidth) {
-        setLineWidth(parseInt(savedLineWidth))
+        // Restore all saved data
+        if (data.layers) setLayers(data.layers)
+        if (data.elements) setElements(data.elements)
+        if (data.history) setHistory(data.history)
+        if (data.historyIndex !== undefined) setHistoryIndex(data.historyIndex)
+        if (data.activeLayer) setActiveLayer(data.activeLayer)
+        if (data.currentColor) setCurrentColor(data.currentColor)
+        if (data.lineWidth) setLineWidth(data.lineWidth)
+
+        // Force a redraw after loading
+        if (context && canvasRef.current) {
+          drawElements()
+        }
       }
     } catch (e) {
       console.error('Failed to load saved data:', e)
     }
   }, []) // Empty dependency array means this runs once on mount
 
-  // Add auto-save effect
+  // Update the auto-save effect
   useEffect(() => {
     const autoSave = () => {
       try {
-        localStorage.setItem('whiteboard-layers', JSON.stringify(layers))
-        localStorage.setItem('whiteboard-elements', JSON.stringify(elements))
+        const saveData = {
+          layers,
+          elements,
+          history,
+          historyIndex,
+          activeLayer,
+          currentColor,
+          lineWidth
+        }
+        localStorage.setItem('whiteboard-data', JSON.stringify(saveData))
       } catch (e) {
         console.error('Failed to auto-save:', e)
       }
     }
 
-    // Auto-save every 30 seconds
-    const interval = setInterval(autoSave, 30000)
+    // Auto-save every 10 seconds
+    const interval = setInterval(autoSave, 10000)
 
     return () => clearInterval(interval)
-  }, [layers, elements])
+  }, [layers, elements, history, historyIndex, activeLayer, currentColor, lineWidth])
+
+  // Add save on window unload
+  useEffect(() => {
+    const handleBeforeUnload = () => {
+      try {
+        const saveData = {
+          layers,
+          elements,
+          history,
+          historyIndex,
+          activeLayer,
+          currentColor,
+          lineWidth
+        }
+        localStorage.setItem('whiteboard-data', JSON.stringify(saveData))
+      } catch (e) {
+        console.error('Failed to save on unload:', e)
+      }
+    }
+
+    window.addEventListener('beforeunload', handleBeforeUnload)
+    return () => window.removeEventListener('beforeunload', handleBeforeUnload)
+  }, [layers, elements, history, historyIndex, activeLayer, currentColor, lineWidth])
 
   return (
     <div className="flex flex-col h-[95vh] border rounded-lg overflow-hidden bg-slate-50 shadow-lg">
