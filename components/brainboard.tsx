@@ -1547,13 +1547,15 @@ export function Brainboard({ boardId }: BrainboardProps) {
       {showStickers && <StickersPanel onSelect={handleAddSticker} onClose={() => setShowStickers(false)} />}
       {showImageUploader && <ImageUploader onUpload={handleAddImage} onClose={() => setShowImageUploader(false)} />}
       {showSettings && (
-        <SettingsPanel
-          onClose={() => setShowSettings(false)}
-          showGrid={showGrid}
-          onShowGridChange={setShowGrid}
-          snapToGrid={snapToGrid}
-          onSnapToGridChange={setSnapToGrid}
-        />
+        <div className="absolute top-56 right-2 z-50">
+          <SettingsPanel
+            onClose={() => setShowSettings(false)}
+            showGrid={showGrid}
+            onShowGridChange={setShowGrid}
+            snapToGrid={snapToGrid}
+            onSnapToGridChange={setSnapToGrid}
+          />
+        </div>
       )}
       {showLayers && (
         <LayersPanel
