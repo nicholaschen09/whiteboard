@@ -813,7 +813,7 @@ export function Brainboard({ boardId }: BrainboardProps) {
 
   // Update handleMouseDown to better handle resize initiation
   const handleMouseDown = (e: React.MouseEvent<HTMLCanvasElement>) => {
-    if (!canvasRef.current) return
+    if (!context || !canvasRef.current) return
 
     const canvas = canvasRef.current
     const rect = canvas.getBoundingClientRect()
@@ -2065,10 +2065,75 @@ export function Brainboard({ boardId }: BrainboardProps) {
 
   const [showAIChat, setShowAIChat] = useState(false)
 
+  // Add back the note editing states
+  const [showNoteInput, setShowNoteInput] = useState(false)
+  const [noteInputValue, setNoteInputValue] = useState("")
+  const [notePosition, setNotePosition] = useState({ x: 0, y: 0 })
+
+  // Add double-click handler for editing notes
+  const handleDoubleClick = (e: React.MouseEvent<HTMLCanvasElement>) => {
+    if (!canvasRef.current) return
+
+    const canvas = canvasRef.current
+    const rect = canvas.getBoundingClientRect()
+    const x = e.clientX - rect.left
+    const y = e.clientY - rect.top
+
+    // Find if we clicked on a note
+    const clickedNote = elements.find(element =>
+      element.type === "note" &&
+      element.x !== undefined &&
+      element.y !== undefined &&
+      element.width !== undefined &&
+      element.height !== undefined &&
+      x >= element.x &&
+      x <= element.x + element.width &&
+      y >= element.y &&
+      y <= element.y + element.height
+    )
+
+    if (clickedNote) {
+      setSelectedElement(clickedNote)
+      setShowNoteInput(true)
+      setNoteInputValue(clickedNote.text || "")
+      setNotePosition({ x: clickedNote.x || 0, y: clickedNote.y || 0 })
+    }
+  }
+
+  // Add function to create note
+  const createNote = () => {
+    if (!canvasRef.current || !noteInputValue.trim()) return
+
+    const canvas = canvasRef.current
+    const rect = canvas.getBoundingClientRect()
+
+    // Calculate center position
+    const x = (rect.width / 2) - 100 // Half of note width
+    const y = (rect.height / 2) - 75 // Half of note height
+
+    const newElement: DrawingElement = {
+      id: Date.now().toString(),
+      type: "note",
+      x,
+      y,
+      width: 200,
+      height: 150,
+      color: "#FFEB3B",
+      text: noteInputValue,
+      userId: 1,
+      lineWidth: 2
+    }
+
+    addElement(newElement)
+    setNoteInputValue("")
+    setShowNoteInput(false)
+    setCurrentTool("select") // Switch back to select tool after placing note
+  }
+
   return (
     <div className="flex flex-col h-[95vh] border rounded-lg overflow-hidden bg-slate-50 shadow-lg">
       <div className="flex items-center justify-between p-2 border-b bg-slate-50">
-        <div className="flex items-center space-x-1 overflow-x-auto pb-1 scrollbar-hide">
+        <div className="flex items-center space-x-auto pb-1 scrollbar-hide">
           <TooltipProvider>
             <Tooltip>
               <TooltipTrigger asChild>
@@ -2194,7 +2259,10 @@ export function Brainboard({ boardId }: BrainboardProps) {
                 <Button
                   variant="ghost"
                   size="sm"
-                  onClick={() => setCurrentTool("note")}
+                  onClick={() => {
+                    setCurrentTool("note")
+                    setShowNoteInput(true)
+                  }}
                   className={cn("rounded-md", currentTool === "note" && "bg-slate-200 hover:bg-slate-300")}
                 >
                   <StickyNote className="h-4 w-4" />
@@ -2457,6 +2525,7 @@ export function Brainboard({ boardId }: BrainboardProps) {
           onMouseMove={handleMouseMove}
           onMouseUp={handleMouseUp}
           onMouseLeave={handleMouseUp}
+          onDoubleClick={handleDoubleClick}
           style={{ touchAction: 'none' }}
         />
 
@@ -2552,6 +2621,39 @@ export function Brainboard({ boardId }: BrainboardProps) {
         </Dialog>
       )}
       {showAIChat && <AIChat onClose={() => setShowAIChat(false)} />}
+      {showNoteInput && (
+        <Dialog open={showNoteInput} onOpenChange={setShowNoteInput}>
+          <DialogContent className="sm:max-w-[425px]">
+            <DialogHeader>
+              <DialogTitle>Add Sticky Note</DialogTitle>
+            </DialogHeader>
+            <div className="grid gap-4 py-4">
+              <Input
+                value={noteInputValue}
+                onChange={(e) => setNoteInputValue(e.target.value)}
+                placeholder="Enter your note..."
+                autoFocus
+                onKeyDown={(e) => {
+                  if (e.key === "Enter") {
+                    createNote()
+                  }
+                }}
+              />
+              <div className="flex justify-end gap-2">
+                <Button variant="outline" onClick={() => {
+                  setShowNoteInput(false)
+                  setCurrentTool("select")
+                }}>
+                  Cancel
+                </Button>
+                <Button onClick={createNote}>
+                  Done
+                </Button>
+              </div>
+            </div>
+          </DialogContent>
+        </Dialog>
+      )}
     </div>
   )
 }
