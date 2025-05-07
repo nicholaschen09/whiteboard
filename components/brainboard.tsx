@@ -34,6 +34,7 @@ import { cn } from "@/lib/utils"
 import { useToast } from "@/hooks/use-toast"
 import { Separator } from "@/components/ui/separator"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
+import { SettingsPanel } from "./settings-panel"
 
 // Mock WebSocket connection
 const createMockWebSocket = () => {
@@ -128,6 +129,7 @@ export function Brainboard({ boardId }: BrainboardProps) {
   const { toast } = useToast()
   const [currentPosition, setCurrentPosition] = useState<{ x: number; y: number } | null>(null)
   const [activeTab, setActiveTab] = useState<string>("draw")
+  const [showSettings, setShowSettings] = useState(false)
 
   // Save elements to localStorage whenever they change
   useEffect(() => {
@@ -831,8 +833,8 @@ export function Brainboard({ boardId }: BrainboardProps) {
   }
 
   return (
-    <div className="flex flex-col h-[80vh] border rounded-lg overflow-hidden bg-white shadow-lg">
-      <div className="flex items-center justify-between p-2 border-b bg-white">
+    <div className="flex flex-col h-[80vh] border rounded-lg overflow-hidden bg-white dark:bg-slate-900 shadow-lg">
+      <div className="flex items-center justify-between p-2 border-b bg-white dark:bg-slate-900 dark:border-slate-700">
         <Tabs defaultValue="draw" className="w-full" onValueChange={setActiveTab}>
           <div className="flex items-center justify-between w-full">
             <TabsList className="grid grid-cols-3 w-auto">
@@ -1154,7 +1156,12 @@ export function Brainboard({ boardId }: BrainboardProps) {
               <TooltipProvider>
                 <Tooltip>
                   <TooltipTrigger asChild>
-                    <Button variant="ghost" size="sm" className="rounded-md">
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      className="rounded-md"
+                      onClick={() => setShowSettings(true)}
+                    >
                       <Settings className="h-4 w-4 mr-1" />
                       <span className="text-xs">Settings</span>
                     </Button>
@@ -1167,10 +1174,10 @@ export function Brainboard({ boardId }: BrainboardProps) {
         </Tabs>
       </div>
 
-      <div className="relative flex-grow bg-slate-50">
+      <div className="relative flex-grow bg-slate-50 dark:bg-slate-800">
         <canvas
           ref={canvasRef}
-          className="absolute inset-0 w-full h-full cursor-crosshair bg-white"
+          className="absolute inset-0 w-full h-full cursor-crosshair bg-white dark:bg-slate-900"
           onMouseDown={handleMouseDown}
           onMouseMove={handleMouseMove}
           onMouseUp={handleMouseUp}
@@ -1192,7 +1199,7 @@ export function Brainboard({ boardId }: BrainboardProps) {
               }}
             >
               {user.id !== 1 && (
-                <div className="absolute -mt-6 -ml-4 whitespace-nowrap text-black text-xs px-1 py-0.5">
+                <div className="absolute -mt-6 -ml-4 whitespace-nowrap text-black dark:text-white text-xs px-1 py-0.5">
                   {user.name}
                 </div>
               )}
@@ -1204,6 +1211,7 @@ export function Brainboard({ boardId }: BrainboardProps) {
       {showShareDialog && <ShareDialog onShare={handleShare} onCancel={() => setShowShareDialog(false)} />}
       {showStickers && <StickersPanel onSelect={handleAddSticker} onClose={() => setShowStickers(false)} />}
       {showImageUploader && <ImageUploader onUpload={handleAddImage} onClose={() => setShowImageUploader(false)} />}
+      {showSettings && <SettingsPanel onClose={() => setShowSettings(false)} />}
     </div>
   )
 }
