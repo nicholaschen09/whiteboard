@@ -1633,7 +1633,24 @@ export function Brainboard({ boardId }: BrainboardProps) {
                   max="10"
                   value={lineWidth}
                   onChange={(e) => setLineWidth(Number.parseInt(e.target.value))}
-                  className="w-24 accent-slate-600"
+                  className="w-24 h-6 accent-slate-600 
+                    [&::-webkit-slider-runnable-track]:h-1.5 
+                    [&::-webkit-slider-runnable-track]:rounded-full
+                    [&::-webkit-slider-runnable-track]:bg-slate-300
+                    [&::-webkit-slider-thumb]:h-4 
+                    [&::-webkit-slider-thumb]:w-4 
+                    [&::-webkit-slider-thumb]:rounded-full
+                    [&::-webkit-slider-thumb]:bg-slate-600
+                    [&::-webkit-slider-thumb]:appearance-none
+                    [&::-webkit-slider-thumb]:-mt-1
+                    [&::-moz-range-track]:h-1.5
+                    [&::-moz-range-track]:rounded-full
+                    [&::-moz-range-track]:bg-slate-300
+                    [&::-moz-range-thumb]:h-4 
+                    [&::-moz-range-thumb]:w-4 
+                    [&::-moz-range-thumb]:rounded-full
+                    [&::-moz-range-thumb]:bg-slate-600
+                    [&::-moz-range-thumb]:-mt-1"
                 />
                 <div className="flex items-center justify-center w-6 h-6 bg-white border rounded-md">
                   <span className="text-xs font-medium">{lineWidth}</span>
