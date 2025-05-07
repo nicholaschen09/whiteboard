@@ -9,7 +9,7 @@ export default function Home() {
             Whiteboard
           </h1>
           <p className="text-lg text-muted-foreground text-center max-w-2xl">
-            A collaborative whiteboard application for brainstorming and visual thinking.
+            A collaborative whiteboard application for brainstorming and visual thinking
           </p>
         </div>
         <Brainboard />
