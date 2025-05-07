@@ -24,6 +24,7 @@ import {
   Eraser,
   Layers,
   Settings,
+  HelpCircle,
 } from "lucide-react"
 import { ColorPicker } from "./color-picker"
 import { UserPresence } from "./user-presence"
@@ -36,6 +37,14 @@ import { Separator } from "@/components/ui/separator"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { SettingsPanel } from "./settings-panel"
 import { LayersPanel } from "./layers-panel"
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "@/components/ui/dialog"
+import { HelpDialog } from "./help-dialog"
 
 // Mock WebSocket connection
 const createMockWebSocket = () => {
@@ -171,6 +180,7 @@ export function Brainboard({ boardId }: BrainboardProps) {
   const [snapToGrid, setSnapToGrid] = useState(false)
   const GRID_SIZE = 20 // Size of grid cells in pixels
   const [eraserSize, setEraserSize] = useState(10) // Default eraser size
+  const [showHelp, setShowHelp] = useState(false)
 
   // Add temporary canvas ref
   const tempCanvasRef = useRef<HTMLCanvasElement>(null)
@@ -1326,6 +1336,52 @@ export function Brainboard({ boardId }: BrainboardProps) {
     }
   }
 
+  const helpContent = [
+    {
+      title: "Drawing Tools",
+      items: [
+        "Select tool (S): Click and drag to select elements",
+        "Pen tool (P): Draw freehand lines",
+        "Rectangle tool (R): Click and drag to draw rectangles",
+        "Circle tool (C): Click and drag to draw circles",
+        "Arrow tool (A): Click and drag to create arrows",
+        "Text tool (T): Click anywhere to add text",
+        "Eraser tool (E): Click and drag to erase elements"
+      ]
+    },
+    {
+      title: "Insert Tools",
+      items: [
+        "Sticky Notes: Add text notes with background color",
+        "Stickers: Add emoji and symbols",
+        "Images: Upload and insert images",
+        "Custom Colors: Use the color picker to create custom colors"
+      ]
+    },
+    {
+      title: "View & Organization",
+      items: [
+        "Layers: Organize elements in different layers",
+        "Grid: Toggle grid for precise alignment",
+        "Snap to Grid: Enable to align elements perfectly",
+        "Zoom: Use mouse wheel to zoom in/out",
+        "Pan: Hold Space + drag to move canvas"
+      ]
+    },
+    {
+      title: "Keyboard Shortcuts",
+      items: [
+        "Ctrl/Cmd + Z: Undo",
+        "Ctrl/Cmd + Y: Redo",
+        "Delete: Remove selected elements",
+        "Ctrl/Cmd + C: Copy selected elements",
+        "Ctrl/Cmd + V: Paste elements",
+        "Ctrl/Cmd + S: Save board",
+        "Esc: Cancel current operation"
+      ]
+    }
+  ]
+
   return (
     <div className="flex flex-col h-[95vh] border rounded-lg overflow-hidden bg-slate-50 shadow-lg">
       <div className="flex items-center justify-between p-2 border-b bg-slate-50">
@@ -1449,6 +1505,17 @@ export function Brainboard({ boardId }: BrainboardProps) {
                     </Button>
                   </TooltipTrigger>
                   <TooltipContent>Settings</TooltipContent>
+                </Tooltip>
+              </TooltipProvider>
+
+              <Separator orientation="vertical" className="h-6 mx-1" />
+
+              <TooltipProvider>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <HelpDialog />
+                  </TooltipTrigger>
+                  <TooltipContent>Help & Tips</TooltipContent>
                 </Tooltip>
               </TooltipProvider>
             </div>
