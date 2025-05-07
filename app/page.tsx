@@ -7,7 +7,7 @@ export default function Home() {
         <div className="flex items-center justify-between mb-6">
           <div>
             <h1 className="text-3xl font-bold text-slate-800">Brainboard</h1>
-            <p className="text-slate-500">Collaborative brainstorming in real-time</p>
+            <p className="text-slate-500">Collaborative brainstorming at your convenience</p>
           </div>
           <div className="hidden md:flex items-center gap-2 text-sm text-slate-500">
             <div className="flex items-center gap-1">
