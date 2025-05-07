@@ -944,6 +944,32 @@ export function Brainboard({ boardId }: BrainboardProps) {
     setElements([])
   }
 
+  const handleEraseBoard = () => {
+    // Clear all layers
+    setLayers(prevLayers =>
+      prevLayers.map(layer => ({
+        ...layer,
+        elements: []
+      }))
+    )
+
+    // Clear elements state
+    setElements([])
+
+    // Clear history
+    setHistory([])
+    setHistoryIndex(-1)
+
+    // Clear localStorage
+    localStorage.removeItem('whiteboard-elements')
+    localStorage.removeItem('whiteboard-layers')
+
+    // Redraw empty canvas
+    if (context && canvasRef.current) {
+      drawElements()
+    }
+  }
+
   const handleDownload = () => {
     if (!canvasRef.current) return
 
@@ -1099,32 +1125,6 @@ export function Brainboard({ boardId }: BrainboardProps) {
     setActiveLayer(newLayer.id)
   }
 
-  const handleEraseBoard = () => {
-    // Clear all layers
-    setLayers(prevLayers =>
-      prevLayers.map(layer => ({
-        ...layer,
-        elements: []
-      }))
-    )
-
-    // Clear elements state
-    setElements([])
-
-    // Clear history
-    setHistory([])
-    setHistoryIndex(-1)
-
-    // Clear localStorage
-    localStorage.removeItem('whiteboard-elements')
-    localStorage.removeItem('whiteboard-layers')
-
-    // Redraw empty canvas
-    if (context && canvasRef.current) {
-      drawElements()
-    }
-  }
-
   return (
     <div className="flex flex-col h-[80vh] border rounded-lg overflow-hidden bg-slate-50 shadow-lg">
       <div className="flex items-center justify-between p-2 border-b bg-slate-50">
@@ -1182,11 +1182,11 @@ export function Brainboard({ boardId }: BrainboardProps) {
               <TooltipProvider>
                 <Tooltip>
                   <TooltipTrigger asChild>
-                    <Button variant="ghost" size="icon" onClick={handleClear} className="rounded-md">
-                      <Trash2 className="h-4 w-4" />
+                    <Button variant="ghost" size="icon" onClick={handleEraseBoard} className="rounded-md">
+                      <Trash2 className="h-4 w-4 text-red-500" />
                     </Button>
                   </TooltipTrigger>
-                  <TooltipContent>Clear</TooltipContent>
+                  <TooltipContent>Erase Board</TooltipContent>
                 </Tooltip>
               </TooltipProvider>
 
