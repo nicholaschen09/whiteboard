@@ -1625,16 +1625,19 @@ export function Brainboard({ boardId }: BrainboardProps) {
 
               <ColorPicker color={currentColor} onChange={setCurrentColor} />
 
-              <div className="flex items-center space-x-1 ml-2">
+              <div className="flex items-center space-x-2 ml-2 bg-slate-50 px-3 py-1.5 rounded-md">
+                <span className="text-xs text-slate-500">Width</span>
                 <input
                   type="range"
                   min="1"
                   max="10"
                   value={lineWidth}
                   onChange={(e) => setLineWidth(Number.parseInt(e.target.value))}
-                  className="w-20"
+                  className="w-24 accent-slate-600"
                 />
-                <span className="text-xs text-slate-500 w-4">{lineWidth}</span>
+                <div className="flex items-center justify-center w-6 h-6 bg-white border rounded-md">
+                  <span className="text-xs font-medium">{lineWidth}</span>
+                </div>
               </div>
             </div>
           </TabsContent>
