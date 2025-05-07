@@ -575,20 +575,73 @@ export function Brainboard({ boardId }: BrainboardProps) {
                     bounds.maxX - bounds.minX + 4,
                     bounds.maxY - bounds.minY + 4
                   )
+
+                  // Draw resize handles
+                  const handleSize = 8
+                  context.fillStyle = "#3b82f6"
+                  // Top-left
+                  context.fillRect(bounds.minX - handleSize / 2, bounds.minY - handleSize / 2, handleSize, handleSize)
+                  // Top-right
+                  context.fillRect(bounds.maxX - handleSize / 2, bounds.minY - handleSize / 2, handleSize, handleSize)
+                  // Bottom-left
+                  context.fillRect(bounds.minX - handleSize / 2, bounds.maxY - handleSize / 2, handleSize, handleSize)
+                  // Bottom-right
+                  context.fillRect(bounds.maxX - handleSize / 2, bounds.maxY - handleSize / 2, handleSize, handleSize)
                 }
               }
               break
 
             case "rectangle":
+            case "circle":
+            case "image":
+            case "note":
               if (
                 element.x !== undefined &&
                 element.y !== undefined &&
                 element.width !== undefined &&
                 element.height !== undefined
               ) {
-                context.beginPath()
-                context.rect(element.x, element.y, element.width, element.height)
-                context.stroke()
+                // Draw the element
+                if (element.type === "rectangle") {
+                  context.beginPath()
+                  context.rect(element.x, element.y, element.width, element.height)
+                  context.stroke()
+                } else if (element.type === "circle") {
+                  const centerX = element.x + element.width / 2
+                  const centerY = element.y + element.width / 2
+                  const radius = element.width / 2
+                  context.beginPath()
+                  context.arc(centerX, centerY, radius, 0, Math.PI * 2)
+                  context.stroke()
+                } else if (element.type === "image" && element.imageUrl) {
+                  const img = imageCache[element.imageUrl] || preloadImage(element.imageUrl)
+                  if (img.complete) {
+                    context.drawImage(img, element.x, element.y, element.width, element.height)
+                  }
+                } else if (element.type === "note" && element.text) {
+                  // Draw sticky note background
+                  context.fillStyle = element.color + "80" // Add transparency
+                  context.fillRect(element.x, element.y, element.width, element.height)
+                  // Draw text
+                  context.fillStyle = "#000000"
+                  context.font = "14px Inter, sans-serif"
+                  const words = element.text.split(" ")
+                  let line = ""
+                  const lineHeight = 18
+                  let offsetY = 20
+                  for (let i = 0; i < words.length; i++) {
+                    const testLine = line + words[i] + " "
+                    const metrics = context.measureText(testLine)
+                    if (metrics.width > element.width - 20 && i > 0) {
+                      context.fillText(line, element.x + 10, element.y + offsetY)
+                      line = words[i] + " "
+                      offsetY += lineHeight
+                    } else {
+                      line = testLine
+                    }
+                  }
+                  context.fillText(line, element.x + 10, element.y + offsetY)
+                }
 
                 // Draw selection indicator if this element is selected
                 if (selectedElement && selectedElement.id === element.id) {
@@ -600,33 +653,18 @@ export function Brainboard({ boardId }: BrainboardProps) {
                     element.width + 4,
                     element.height + 4
                   )
-                }
-              }
-              break
 
-            case "circle":
-              if (
-                element.x !== undefined &&
-                element.y !== undefined &&
-                element.width !== undefined
-              ) {
-                const centerX = element.x + element.width / 2
-                const centerY = element.y + element.width / 2
-                const radius = element.width / 2
-                context.beginPath()
-                context.arc(centerX, centerY, radius, 0, Math.PI * 2)
-                context.stroke()
-
-                // Draw selection indicator if this element is selected
-                if (selectedElement && selectedElement.id === element.id) {
-                  context.strokeStyle = "#3b82f6"
-                  context.lineWidth = 1
-                  context.strokeRect(
-                    centerX - radius - 2,
-                    centerY - radius - 2,
-                    radius * 2 + 4,
-                    radius * 2 + 4
-                  )
+                  // Draw resize handles
+                  const handleSize = 8
+                  context.fillStyle = "#3b82f6"
+                  // Top-left
+                  context.fillRect(element.x - handleSize / 2, element.y - handleSize / 2, handleSize, handleSize)
+                  // Top-right
+                  context.fillRect(element.x + element.width - handleSize / 2, element.y - handleSize / 2, handleSize, handleSize)
+                  // Bottom-left
+                  context.fillRect(element.x - handleSize / 2, element.y + element.height - handleSize / 2, handleSize, handleSize)
+                  // Bottom-right
+                  context.fillRect(element.x + element.width - handleSize / 2, element.y + element.height - handleSize / 2, handleSize, handleSize)
                 }
               }
               break
@@ -640,7 +678,7 @@ export function Brainboard({ boardId }: BrainboardProps) {
                 // Draw selection indicator if this element is selected
                 if (selectedElement && selectedElement.id === element.id) {
                   const metrics = context.measureText(element.text)
-                  context.strokeStyle = "#3b82f6" // Blue color for selection
+                  context.strokeStyle = "#3b82f6"
                   context.lineWidth = 1
                   context.strokeRect(
                     element.x - 2,
@@ -648,6 +686,18 @@ export function Brainboard({ boardId }: BrainboardProps) {
                     metrics.width + 4,
                     20
                   )
+
+                  // Draw resize handles
+                  const handleSize = 8
+                  context.fillStyle = "#3b82f6"
+                  // Top-left
+                  context.fillRect(element.x - handleSize / 2, element.y - 16 - handleSize / 2, handleSize, handleSize)
+                  // Top-right
+                  context.fillRect(element.x + metrics.width - handleSize / 2, element.y - 16 - handleSize / 2, handleSize, handleSize)
+                  // Bottom-left
+                  context.fillRect(element.x - handleSize / 2, element.y + 4 - handleSize / 2, handleSize, handleSize)
+                  // Bottom-right
+                  context.fillRect(element.x + metrics.width - handleSize / 2, element.y + 4 - handleSize / 2, handleSize, handleSize)
                 }
               }
               break
@@ -668,52 +718,18 @@ export function Brainboard({ boardId }: BrainboardProps) {
                     metrics.width + 4,
                     36
                   )
-                }
-              }
-              break
 
-            case "image":
-              if (
-                element.x !== undefined &&
-                element.y !== undefined &&
-                element.width !== undefined &&
-                element.height !== undefined &&
-                element.imageUrl
-              ) {
-                const img = imageCache[element.imageUrl] || preloadImage(element.imageUrl)
-
-                if (img.complete) {
-                  context.drawImage(img, element.x, element.y, element.width, element.height)
-
-                  // Draw selection indicator if this element is selected
-                  if (selectedElement && selectedElement.id === element.id) {
-                    context.strokeStyle = "#3b82f6"
-                    context.lineWidth = 1
-                    context.strokeRect(
-                      element.x - 2,
-                      element.y - 2,
-                      element.width + 4,
-                      element.height + 4
-                    )
-
-                    // Draw resize handles
-                    const handleSize = 8
-                    context.fillStyle = "#3b82f6"
-                    // Top-left
-                    context.fillRect(element.x - handleSize / 2, element.y - handleSize / 2, handleSize, handleSize)
-                    // Top-right
-                    context.fillRect(element.x + element.width - handleSize / 2, element.y - handleSize / 2, handleSize, handleSize)
-                    // Bottom-left
-                    context.fillRect(element.x - handleSize / 2, element.y + element.height - handleSize / 2, handleSize, handleSize)
-                    // Bottom-right
-                    context.fillRect(element.x + element.width - handleSize / 2, element.y + element.height - handleSize / 2, handleSize, handleSize)
-                  }
-                } else {
-                  img.onload = () => {
-                    if (context && canvasRef.current) {
-                      drawElements()
-                    }
-                  }
+                  // Draw resize handles
+                  const handleSize = 8
+                  context.fillStyle = "#3b82f6"
+                  // Top-left
+                  context.fillRect(element.x - handleSize / 2, element.y - 32 - handleSize / 2, handleSize, handleSize)
+                  // Top-right
+                  context.fillRect(element.x + metrics.width - handleSize / 2, element.y - 32 - handleSize / 2, handleSize, handleSize)
+                  // Bottom-left
+                  context.fillRect(element.x - handleSize / 2, element.y + 4 - handleSize / 2, handleSize, handleSize)
+                  // Bottom-right
+                  context.fillRect(element.x + metrics.width - handleSize / 2, element.y + 4 - handleSize / 2, handleSize, handleSize)
                 }
               }
               break
@@ -762,58 +778,18 @@ export function Brainboard({ boardId }: BrainboardProps) {
                     bounds.maxX - bounds.minX + 4,
                     bounds.maxY - bounds.minY + 4
                   )
-                }
-              }
-              break
 
-            case "note":
-              if (
-                element.x !== undefined &&
-                element.y !== undefined &&
-                element.width !== undefined &&
-                element.height !== undefined &&
-                element.text
-              ) {
-                // Draw sticky note background
-                context.fillStyle = element.color + "80" // Add transparency
-                context.fillRect(element.x, element.y, element.width, element.height)
-
-                // Draw text
-                context.fillStyle = "#000000"
-                context.font = "14px Inter, sans-serif"
-
-                // Wrap text
-                const words = element.text.split(" ")
-                let line = ""
-                const lineHeight = 18
-                let offsetY = 20
-
-                for (let i = 0; i < words.length; i++) {
-                  const testLine = line + words[i] + " "
-                  const metrics = context.measureText(testLine)
-                  const testWidth = metrics.width
-
-                  if (testWidth > element.width - 20 && i > 0) {
-                    context.fillText(line, element.x + 10, element.y + offsetY)
-                    line = words[i] + " "
-                    offsetY += lineHeight
-                  } else {
-                    line = testLine
-                  }
-                }
-
-                context.fillText(line, element.x + 10, element.y + offsetY)
-
-                // Draw selection indicator if this element is selected
-                if (selectedElement && selectedElement.id === element.id) {
-                  context.strokeStyle = "#3b82f6"
-                  context.lineWidth = 1
-                  context.strokeRect(
-                    element.x - 2,
-                    element.y - 2,
-                    element.width + 4,
-                    element.height + 4
-                  )
+                  // Draw resize handles
+                  const handleSize = 8
+                  context.fillStyle = "#3b82f6"
+                  // Top-left
+                  context.fillRect(bounds.minX - handleSize / 2, bounds.minY - handleSize / 2, handleSize, handleSize)
+                  // Top-right
+                  context.fillRect(bounds.maxX - handleSize / 2, bounds.minY - handleSize / 2, handleSize, handleSize)
+                  // Bottom-left
+                  context.fillRect(bounds.minX - handleSize / 2, bounds.maxY - handleSize / 2, handleSize, handleSize)
+                  // Bottom-right
+                  context.fillRect(bounds.maxX - handleSize / 2, bounds.maxY - handleSize / 2, handleSize, handleSize)
                 }
               }
               break
