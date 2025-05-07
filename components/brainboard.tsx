@@ -25,6 +25,7 @@ import {
   Layers,
   Settings,
   HelpCircle,
+  Save,
 } from "lucide-react"
 import { ColorPicker } from "./color-picker"
 import { UserPresence } from "./user-presence"
@@ -1593,6 +1594,86 @@ export function Brainboard({ boardId }: BrainboardProps) {
     }
   ]
 
+  const handleSave = () => {
+    try {
+      // Save all layers and their elements
+      localStorage.setItem('whiteboard-layers', JSON.stringify(layers))
+      localStorage.setItem('whiteboard-elements', JSON.stringify(elements))
+      localStorage.setItem('whiteboard-history', JSON.stringify(history))
+      localStorage.setItem('whiteboard-history-index', JSON.stringify(historyIndex))
+      localStorage.setItem('whiteboard-active-layer', activeLayer)
+      localStorage.setItem('whiteboard-current-color', currentColor)
+      localStorage.setItem('whiteboard-line-width', lineWidth.toString())
+
+      toast({
+        title: "Saved!",
+        description: "Your whiteboard has been saved successfully.",
+      })
+    } catch (e) {
+      console.error('Failed to save whiteboard:', e)
+      toast({
+        title: "Error",
+        description: "Failed to save whiteboard. Please try again.",
+        variant: "destructive",
+      })
+    }
+  }
+
+  // Add this after the other useEffect hooks
+  useEffect(() => {
+    try {
+      // Load saved data
+      const savedLayers = localStorage.getItem('whiteboard-layers')
+      const savedElements = localStorage.getItem('whiteboard-elements')
+      const savedHistory = localStorage.getItem('whiteboard-history')
+      const savedHistoryIndex = localStorage.getItem('whiteboard-history-index')
+      const savedActiveLayer = localStorage.getItem('whiteboard-active-layer')
+      const savedColor = localStorage.getItem('whiteboard-current-color')
+      const savedLineWidth = localStorage.getItem('whiteboard-line-width')
+
+      if (savedLayers) {
+        setLayers(JSON.parse(savedLayers))
+      }
+      if (savedElements) {
+        setElements(JSON.parse(savedElements))
+      }
+      if (savedHistory) {
+        setHistory(JSON.parse(savedHistory))
+      }
+      if (savedHistoryIndex) {
+        setHistoryIndex(JSON.parse(savedHistoryIndex))
+      }
+      if (savedActiveLayer) {
+        setActiveLayer(savedActiveLayer)
+      }
+      if (savedColor) {
+        setCurrentColor(savedColor)
+      }
+      if (savedLineWidth) {
+        setLineWidth(parseInt(savedLineWidth))
+      }
+    } catch (e) {
+      console.error('Failed to load saved data:', e)
+    }
+  }, []) // Empty dependency array means this runs once on mount
+
+  // Add auto-save effect
+  useEffect(() => {
+    const autoSave = () => {
+      try {
+        localStorage.setItem('whiteboard-layers', JSON.stringify(layers))
+        localStorage.setItem('whiteboard-elements', JSON.stringify(elements))
+      } catch (e) {
+        console.error('Failed to auto-save:', e)
+      }
+    }
+
+    // Auto-save every 30 seconds
+    const interval = setInterval(autoSave, 30000)
+
+    return () => clearInterval(interval)
+  }, [layers, elements])
+
   return (
     <div className="flex flex-col h-[95vh] border rounded-lg overflow-hidden bg-slate-50 shadow-lg">
       <div className="flex items-center justify-between p-2 border-b bg-slate-50">
@@ -1938,6 +2019,24 @@ export function Brainboard({ boardId }: BrainboardProps) {
                 <HelpDialog />
               </TooltipTrigger>
               <TooltipContent>Help & Tips</TooltipContent>
+            </Tooltip>
+          </TooltipProvider>
+
+          <Separator orientation="vertical" className="h-6 mx-1" />
+
+          <TooltipProvider>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={handleSave}
+                  className="rounded-md"
+                >
+                  <Save className="h-4 w-4" />
+                </Button>
+              </TooltipTrigger>
+              <TooltipContent>Save</TooltipContent>
             </Tooltip>
           </TooltipProvider>
         </div>
