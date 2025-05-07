@@ -31,15 +31,11 @@ export function ColorPicker({ color, onChange }: ColorPickerProps) {
     <Popover open={open} onOpenChange={setOpen}>
       <PopoverTrigger asChild>
         <Button
-          variant="outline"
+          variant="ghost"
           size="sm"
-          className={cn("h-8 border-2 rounded-md flex items-center gap-1", color === "#ffffff" && "border-slate-300")}
-          style={{ borderColor: color }}
+          className="h-8 w-8 p-0 rounded-md flex items-center justify-center"
         >
-          <div className="w-4 h-4 rounded-sm flex items-center justify-center" style={{ backgroundColor: color }}>
-            <Palette className="h-3 w-3 text-white mix-blend-difference" />
-          </div>
-          <span className="text-xs">Color</span>
+          <Palette className="h-4 w-4 text-slate-950" />
         </Button>
       </PopoverTrigger>
       <PopoverContent className="w-64 p-3">
