@@ -21,7 +21,7 @@ interface UserPresenceProps {
 
 export function UserPresence({ users }: UserPresenceProps) {
   return (
-    <Card className="absolute bottom-4 right-4 w-64 shadow-lg border border-slate-200 bg-white/95 backdrop-blur-sm">
+    <Card className="absolute bottom-4 right-4 w-64 shadow-lg border border-slate-200">
       <CardHeader className="py-3 px-4">
         <div className="flex items-center justify-between">
           <CardTitle className="text-sm">Collaborators</CardTitle>
@@ -41,9 +41,8 @@ export function UserPresence({ users }: UserPresenceProps) {
                     <AvatarFallback>{user.name.charAt(0)}</AvatarFallback>
                   </Avatar>
                   <span
-                    className={`absolute bottom-0 right-0 w-2.5 h-2.5 rounded-full border-2 border-white ${
-                      user.online ? "bg-green-500" : "bg-gray-300"
-                    }`}
+                    className={`absolute bottom-0 right-0 w-2.5 h-2.5 rounded-full border-2 border-white ${user.online ? "bg-green-500" : "bg-gray-300"
+                      }`}
                   />
                 </div>
                 <div className="flex-1 min-w-0">

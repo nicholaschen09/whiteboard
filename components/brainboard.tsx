@@ -1164,7 +1164,7 @@ export function Brainboard({ boardId }: BrainboardProps) {
               }}
             >
               {user.id !== 1 && (
-                <div className="absolute -mt-6 -ml-4 whitespace-nowrap bg-black bg-opacity-75 text-white text-xs px-1 py-0.5 rounded">
+                <div className="absolute -mt-6 -ml-4 whitespace-nowrap text-black text-xs px-1 py-0.5">
                   {user.name}
                 </div>
               )}
