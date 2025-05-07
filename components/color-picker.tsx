@@ -71,7 +71,8 @@ export function ColorPicker({ color, onChange }: ColorPickerProps) {
                   type="text"
                   value={color}
                   onChange={(e) => onChange(e.target.value)}
-                  className="flex-1 px-2 py-1 border rounded-md text-sm"
+                  className="flex-1 px-2 py-1 border rounded-md text-sm w-24"
+                  maxLength={7}
                 />
               </div>
             </div>
