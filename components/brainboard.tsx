@@ -81,7 +81,18 @@ const initialUsers = [
   { id: 1, name: "You", avatar: "/placeholder.svg?height=40&width=40", color: "#FF5733", x: 100, y: 150, online: true }
 ]
 
-type Tool = "select" | "pen" | "rectangle" | "circle" | "text" | "sticker" | "image" | "arrow" | "note" | "eraser"
+type Tool =
+  | "select"
+  | "pen"
+  | "rectangle"
+  | "circle"
+  | "text"
+  | "sticker"
+  | "image"
+  | "arrow"
+  | "note"
+  | "eraser"
+
 type DrawingElement = {
   id: string
   type: Tool
@@ -564,7 +575,62 @@ export function Brainboard({ boardId }: BrainboardProps) {
     }
   }
 
-  // Update handleMouseDown to use grid snapping
+  // Add function to check if a point is near an element
+  const isPointNearElement = (x: number, y: number, element: DrawingElement) => {
+    const threshold = 10 // Distance threshold for erasing
+
+    switch (element.type) {
+      case "pen":
+        if (element.points) {
+          return element.points.some(point => {
+            const dx = point.x - x
+            const dy = point.y - y
+            return Math.sqrt(dx * dx + dy * dy) < threshold
+          })
+        }
+        return false
+
+      case "rectangle":
+        if (element.x !== undefined && element.y !== undefined &&
+          element.width !== undefined && element.height !== undefined) {
+          return x >= element.x && x <= element.x + element.width &&
+            y >= element.y && y <= element.y + element.height
+        }
+        return false
+
+      case "circle":
+        if (element.x !== undefined && element.y !== undefined && element.width !== undefined) {
+          const centerX = element.x + element.width / 2
+          const centerY = element.y + element.width / 2
+          const radius = element.width / 2
+          const dx = x - centerX
+          const dy = y - centerY
+          return Math.sqrt(dx * dx + dy * dy) <= radius
+        }
+        return false
+
+      case "text":
+      case "sticker":
+        if (element.x !== undefined && element.y !== undefined) {
+          return Math.abs(element.x - x) < threshold && Math.abs(element.y - y) < threshold
+        }
+        return false
+
+      case "image":
+      case "note":
+        if (element.x !== undefined && element.y !== undefined &&
+          element.width !== undefined && element.height !== undefined) {
+          return x >= element.x && x <= element.x + element.width &&
+            y >= element.y && y <= element.y + element.height
+        }
+        return false
+
+      default:
+        return false
+    }
+  }
+
+  // Update handleMouseDown to handle eraser
   const handleMouseDown = (e: React.MouseEvent<HTMLCanvasElement>) => {
     if (!canvasRef.current) return
 
@@ -583,14 +649,30 @@ export function Brainboard({ boardId }: BrainboardProps) {
 
     setIsDrawing(true)
 
-    // Update current user position to exact cursor position
+    // Update current user position
     setUsers((prevUsers) => prevUsers.map((user) => (user.id === 1 ? { ...user, x, y } : user)))
+
+    if (currentTool === "eraser" as Tool) {
+      // Find and remove elements that intersect with the eraser point
+      const updatedLayers = layers.map(layer => ({
+        ...layer,
+        elements: layer.elements.filter(element => !isPointNearElement(x, y, element))
+      }))
+      setLayers(updatedLayers)
+
+      // Update elements state to match the active layer
+      const currentActiveLayer = updatedLayers.find(layer => layer.id === activeLayer)
+      if (currentActiveLayer) {
+        setElements(currentActiveLayer.elements)
+      }
+      return
+    }
 
     const newElement: DrawingElement = {
       id: Date.now().toString(),
       type: currentTool,
       color: currentColor,
-      userId: 1, // Current user
+      userId: 1,
       lineWidth,
     }
 
@@ -652,7 +734,7 @@ export function Brainboard({ boardId }: BrainboardProps) {
     setCurrentElement(newElement)
   }
 
-  // Update handleMouseMove to use grid snapping
+  // Update handleMouseMove to handle eraser
   const handleMouseMove = (e: React.MouseEvent<HTMLCanvasElement>) => {
     if (!canvasRef.current) return
 
@@ -669,8 +751,26 @@ export function Brainboard({ boardId }: BrainboardProps) {
     x = snapped.x
     y = snapped.y
 
-    // Always update current user cursor position for accurate tracking
+    // Update current user position
     setUsers((prevUsers) => prevUsers.map((user) => (user.id === 1 ? { ...user, x, y } : user)))
+
+    if (!isDrawing) return
+
+    if (currentTool === "eraser" as Tool) {
+      // Find and remove elements that intersect with the eraser point
+      const updatedLayers = layers.map(layer => ({
+        ...layer,
+        elements: layer.elements.filter(element => !isPointNearElement(x, y, element))
+      }))
+      setLayers(updatedLayers)
+
+      // Update elements state to match the active layer
+      const currentActiveLayer = updatedLayers.find(layer => layer.id === activeLayer)
+      if (currentActiveLayer) {
+        setElements(currentActiveLayer.elements)
+      }
+      return
+    }
 
     // If not drawing, just update cursor position and return
     if (!isDrawing || !currentElement) return
@@ -997,6 +1097,32 @@ export function Brainboard({ boardId }: BrainboardProps) {
     }
     setLayers(prevLayers => [...prevLayers, newLayer])
     setActiveLayer(newLayer.id)
+  }
+
+  const handleEraseBoard = () => {
+    // Clear all layers
+    setLayers(prevLayers =>
+      prevLayers.map(layer => ({
+        ...layer,
+        elements: []
+      }))
+    )
+
+    // Clear elements state
+    setElements([])
+
+    // Clear history
+    setHistory([])
+    setHistoryIndex(-1)
+
+    // Clear localStorage
+    localStorage.removeItem('whiteboard-elements')
+    localStorage.removeItem('whiteboard-layers')
+
+    // Redraw empty canvas
+    if (context && canvasRef.current) {
+      drawElements()
+    }
   }
 
   return (
@@ -1391,6 +1517,7 @@ export function Brainboard({ boardId }: BrainboardProps) {
           onShowGridChange={setShowGrid}
           snapToGrid={snapToGrid}
           onSnapToGridChange={setSnapToGrid}
+          onEraseBoard={handleEraseBoard}
         />
       )}
       {showLayers && (
