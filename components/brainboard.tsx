@@ -438,14 +438,14 @@ export function Brainboard({ boardId }: BrainboardProps) {
     }
   }, [showGrid, snapToGrid]) // Add grid settings to dependencies
 
-  // Update drawGrid function to ensure it's visible
+  // Update drawGrid function to make lines thinner and more transparent
   const drawGrid = () => {
     if (!context || !canvasRef.current || !showGrid) return
 
     const canvas = canvasRef.current
     context.save()
-    context.strokeStyle = '#e5e7eb' // Light grey color for grid
-    context.lineWidth = 1 // Make lines slightly more visible
+    context.strokeStyle = 'rgba(229, 231, 235, 0.3)' // Light grey color with transparency
+    context.lineWidth = 0.5 // Make lines thinner
 
     // Draw vertical lines
     for (let x = 0; x <= canvas.width; x += GRID_SIZE) {
