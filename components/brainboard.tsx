@@ -1310,8 +1310,7 @@ export function Brainboard({ boardId }: BrainboardProps) {
                       onClick={() => setCurrentTool("select")}
                       className="rounded-md"
                     >
-                      <MousePointer className="h-4 w-4 mr-1" />
-                      <span className="text-xs">Select</span>
+                      <MousePointer className="h-4 w-4" />
                     </Button>
                   </TooltipTrigger>
                   <TooltipContent>Select</TooltipContent>
@@ -1327,8 +1326,7 @@ export function Brainboard({ boardId }: BrainboardProps) {
                       onClick={() => setCurrentTool("pen")}
                       className="rounded-md"
                     >
-                      <Pencil className="h-4 w-4 mr-1" />
-                      <span className="text-xs">Pen</span>
+                      <Pencil className="h-4 w-4" />
                     </Button>
                   </TooltipTrigger>
                   <TooltipContent>Pen</TooltipContent>
@@ -1344,8 +1342,7 @@ export function Brainboard({ boardId }: BrainboardProps) {
                       onClick={() => setCurrentTool("eraser")}
                       className="rounded-md"
                     >
-                      <Eraser className="h-4 w-4 mr-1" />
-                      <span className="text-xs">Eraser</span>
+                      <Eraser className="h-4 w-4" />
                     </Button>
                   </TooltipTrigger>
                   <TooltipContent>Eraser</TooltipContent>
@@ -1363,8 +1360,7 @@ export function Brainboard({ boardId }: BrainboardProps) {
                       onClick={() => setCurrentTool("rectangle")}
                       className="rounded-md"
                     >
-                      <Square className="h-4 w-4 mr-1" />
-                      <span className="text-xs">Rectangle</span>
+                      <Square className="h-4 w-4" />
                     </Button>
                   </TooltipTrigger>
                   <TooltipContent>Rectangle</TooltipContent>
@@ -1380,8 +1376,7 @@ export function Brainboard({ boardId }: BrainboardProps) {
                       onClick={() => setCurrentTool("circle")}
                       className="rounded-md"
                     >
-                      <Circle className="h-4 w-4 mr-1" />
-                      <span className="text-xs">Circle</span>
+                      <Circle className="h-4 w-4" />
                     </Button>
                   </TooltipTrigger>
                   <TooltipContent>Circle</TooltipContent>
@@ -1397,8 +1392,7 @@ export function Brainboard({ boardId }: BrainboardProps) {
                       onClick={() => setCurrentTool("arrow")}
                       className="rounded-md"
                     >
-                      <ArrowUpRight className="h-4 w-4 mr-1" />
-                      <span className="text-xs">Arrow</span>
+                      <ArrowUpRight className="h-4 w-4" />
                     </Button>
                   </TooltipTrigger>
                   <TooltipContent>Arrow</TooltipContent>
@@ -1410,7 +1404,6 @@ export function Brainboard({ boardId }: BrainboardProps) {
               <ColorPicker color={currentColor} onChange={setCurrentColor} />
 
               <div className="flex items-center space-x-1 ml-2">
-                <span className="text-xs text-slate-500">Width:</span>
                 <input
                   type="range"
                   min="1"
@@ -1424,7 +1417,6 @@ export function Brainboard({ boardId }: BrainboardProps) {
 
               {currentTool === "eraser" && (
                 <div className="flex items-center space-x-1 ml-2">
-                  <span className="text-xs text-slate-500">Eraser:</span>
                   <input
                     type="range"
                     min="5"
@@ -1450,8 +1442,7 @@ export function Brainboard({ boardId }: BrainboardProps) {
                       onClick={() => setCurrentTool("text")}
                       className="rounded-md"
                     >
-                      <Type className="h-4 w-4 mr-1" />
-                      <span className="text-xs">Text</span>
+                      <Type className="h-4 w-4" />
                     </Button>
                   </TooltipTrigger>
                   <TooltipContent>Text</TooltipContent>
@@ -1467,8 +1458,7 @@ export function Brainboard({ boardId }: BrainboardProps) {
                       onClick={() => setCurrentTool("note")}
                       className="rounded-md"
                     >
-                      <StickyNote className="h-4 w-4 mr-1" />
-                      <span className="text-xs">Note</span>
+                      <StickyNote className="h-4 w-4" />
                     </Button>
                   </TooltipTrigger>
                   <TooltipContent>Sticky Note</TooltipContent>
@@ -1484,8 +1474,7 @@ export function Brainboard({ boardId }: BrainboardProps) {
                       onClick={() => setCurrentTool("sticker")}
                       className="rounded-md"
                     >
-                      <Sticker className="h-4 w-4 mr-1" />
-                      <span className="text-xs">Sticker</span>
+                      <Sticker className="h-4 w-4" />
                     </Button>
                   </TooltipTrigger>
                   <TooltipContent>Stickers</TooltipContent>
@@ -1501,8 +1490,7 @@ export function Brainboard({ boardId }: BrainboardProps) {
                       onClick={() => setCurrentTool("image")}
                       className="rounded-md"
                     >
-                      <ImageIcon className="h-4 w-4 mr-1" />
-                      <span className="text-xs">Image</span>
+                      <ImageIcon className="h-4 w-4" />
                     </Button>
                   </TooltipTrigger>
                   <TooltipContent>Add Image</TooltipContent>
@@ -1522,8 +1510,7 @@ export function Brainboard({ boardId }: BrainboardProps) {
                       className="rounded-md"
                       onClick={() => setShowLayers(true)}
                     >
-                      <Layers className="h-4 w-4 mr-1" />
-                      <span className="text-xs">Layers</span>
+                      <Layers className="h-4 w-4" />
                     </Button>
                   </TooltipTrigger>
                   <TooltipContent>Manage Layers</TooltipContent>
