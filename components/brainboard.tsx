@@ -124,6 +124,7 @@ type DrawingElement = {
   stickerType?: string
   imageUrl?: string
   lineWidth?: number
+  fontSize?: number  // Add fontSize property
 }
 
 type Layer = {
@@ -696,7 +697,7 @@ export function Brainboard({ boardId }: BrainboardProps) {
 
             case "text":
               if (element.x !== undefined && element.y !== undefined && element.text) {
-                context.font = "16px Inter, sans-serif"
+                context.font = `${element.fontSize || 16}px Inter, sans-serif`
                 context.fillStyle = element.color
                 context.fillText(element.text, element.x, element.y)
 
@@ -707,18 +708,18 @@ export function Brainboard({ boardId }: BrainboardProps) {
                   context.lineWidth = 1
                   context.strokeRect(
                     element.x - 2,
-                    element.y - 16,
+                    element.y - (element.fontSize || 16),
                     metrics.width + 4,
-                    20
+                    (element.fontSize || 16) + 4
                   )
 
                   // Draw resize handles
                   const handleSize = 8
                   context.fillStyle = "#3b82f6"
                   // Top-left
-                  context.fillRect(element.x - handleSize / 2, element.y - 16 - handleSize / 2, handleSize, handleSize)
+                  context.fillRect(element.x - handleSize / 2, element.y - (element.fontSize || 16) - handleSize / 2, handleSize, handleSize)
                   // Top-right
-                  context.fillRect(element.x + metrics.width - handleSize / 2, element.y - 16 - handleSize / 2, handleSize, handleSize)
+                  context.fillRect(element.x + metrics.width - handleSize / 2, element.y - (element.fontSize || 16) - handleSize / 2, handleSize, handleSize)
                   // Bottom-left
                   context.fillRect(element.x - handleSize / 2, element.y + 4 - handleSize / 2, handleSize, handleSize)
                   // Bottom-right
@@ -862,59 +863,54 @@ export function Brainboard({ boardId }: BrainboardProps) {
         if (!element) return false
 
         switch (element.type) {
-          case "pen":
-            if (element.points && element.points.length > 0) {
-              // Calculate bounds of the pen drawing
-              const bounds = element.points.reduce(
-                (acc, point) => ({
-                  minX: Math.min(acc.minX, point.x),
-                  minY: Math.min(acc.minY, point.y),
-                  maxX: Math.max(acc.maxX, point.x),
-                  maxY: Math.max(acc.maxY, point.y)
-                }),
-                {
-                  minX: element.points[0].x,
-                  minY: element.points[0].y,
-                  maxX: element.points[0].x,
-                  maxY: element.points[0].y
-                }
-              )
-
-              // Check if click is on resize handle
+          case "text":
+            if (element.x !== undefined && element.y !== undefined && element.text) {
+              const metrics = context.measureText(element.text)
               const handleSize = 8
+
+              // Check for resize handles
               const isOnResizeHandle =
-                (x >= bounds.maxX - handleSize && x <= bounds.maxX + handleSize &&
-                  y >= bounds.maxY - handleSize && y <= bounds.maxY + handleSize) ? 'se' :
-                  (x >= bounds.minX - handleSize && x <= bounds.minX + handleSize &&
-                    y >= bounds.minY - handleSize && y <= bounds.minY + handleSize) ? 'nw' :
-                    (x >= bounds.maxX - handleSize && x <= bounds.maxX + handleSize &&
-                      y >= bounds.minY - handleSize && y <= bounds.minY + handleSize) ? 'ne' :
-                      (x >= bounds.minX - handleSize && x <= bounds.minX + handleSize &&
-                        y >= bounds.maxY - handleSize && y <= bounds.maxY + handleSize) ? 'sw' : null
+                (x >= element.x + metrics.width - handleSize && x <= element.x + metrics.width + handleSize &&
+                  y >= element.y - (element.fontSize || 16) - handleSize && y <= element.y - (element.fontSize || 16) + handleSize) ? 'ne' :
+                  (x >= element.x - handleSize && x <= element.x + handleSize &&
+                    y >= element.y - (element.fontSize || 16) - handleSize && y <= element.y - (element.fontSize || 16) + handleSize) ? 'nw' :
+                    (x >= element.x + metrics.width - handleSize && x <= element.x + metrics.width + handleSize &&
+                      y >= element.y - handleSize && y <= element.y + handleSize) ? 'se' :
+                      (x >= element.x - handleSize && x <= element.x + handleSize &&
+                        y >= element.y - handleSize && y <= element.y + handleSize) ? 'sw' : null
 
               if (isOnResizeHandle) {
                 setIsResizing(true)
                 setResizeDirection(isOnResizeHandle)
                 setOriginalSize({
-                  width: bounds.maxX - bounds.minX,
-                  height: bounds.maxY - bounds.minY,
-                  x: bounds.minX,
-                  y: bounds.minY
+                  width: metrics.width,
+                  height: element.fontSize || 16,
+                  x: element.x,
+                  y: element.y
                 })
                 setResizeStartPoint({ x, y })
                 return true
               }
 
-              // Check if click is near any point in the pen drawing
-              return element.points.some(point => {
-                const dx = x - point.x
-                const dy = y - point.y
-                return Math.sqrt(dx * dx + dy * dy) < 10 // 10px click radius
-              })
+              // Check if click is within the text bounds
+              const isWithinBounds =
+                x >= element.x - 2 &&
+                x <= element.x + metrics.width + 2 &&
+                y >= element.y - (element.fontSize || 16) - 2 &&
+                y <= element.y + 4
+
+              if (isWithinBounds) {
+                setIsDragging(true)
+                setDragOffset({
+                  x: x - element.x,
+                  y: y - element.y
+                })
+                return true
+              }
             }
             return false
 
-          case "text":
+          case "pen":
           case "sticker":
             if (element.x !== undefined && element.y !== undefined) {
               const dx = x - element.x
@@ -1024,10 +1020,8 @@ export function Brainboard({ boardId }: BrainboardProps) {
 
   const handleTextSubmit = () => {
     if (textInputValue.trim()) {
-      // Get the center of the canvas for text placement
       const canvas = canvasRef.current
       if (canvas) {
-        // Convert canvas coordinates to account for device pixel ratio
         const dpr = window.devicePixelRatio || 1
         const x = (canvas.width / dpr) / 2
         const y = (canvas.height / dpr) / 2
@@ -1041,10 +1035,12 @@ export function Brainboard({ boardId }: BrainboardProps) {
           color: currentColor,
           userId: 1,
           lineWidth,
+          fontSize: 16,  // Default font size
+          width: 100,    // Default width
+          height: 20     // Default height
         }
         addElement(newElement)
 
-        // Force a redraw of the canvas
         if (context) {
           drawElements()
         }
@@ -1127,21 +1123,14 @@ export function Brainboard({ boardId }: BrainboardProps) {
         }
       }
 
-      if (element.type === 'pen' && element.points) {
-        // For pen elements, scale all points relative to the appropriate corner
-        const updatedPoints = element.points.map(point => {
-          const relativeX = point.x - originalSize.x
-          const relativeY = point.y - originalSize.y
-          return {
-            x: newX + relativeX * scaleX,
-            y: newY + relativeY * scaleY
-          }
-        })
-
-        // Update the element's points
+      if (element.type === 'text') {
+        // For text elements, scale the font size
+        const newFontSize = Math.max(8, Math.round((element.fontSize || 16) * scaleY))
         const updatedElement = {
           ...element,
-          points: updatedPoints
+          x: newX,
+          y: newY,
+          fontSize: newFontSize
         }
 
         // Update the elements array
