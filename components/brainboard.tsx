@@ -2173,6 +2173,8 @@ export function Brainboard({ boardId }: BrainboardProps) {
     setCurrentTool("select")
   }
 
+  const [showPenSettings, setShowPenSettings] = useState(false)
+
   return (
     <div className="flex flex-col h-[95vh] border rounded-lg overflow-hidden bg-slate-50 shadow-lg">
       <div className="flex items-center justify-between p-2 border-b bg-slate-50">
@@ -2199,7 +2201,10 @@ export function Brainboard({ boardId }: BrainboardProps) {
                 <Button
                   variant="ghost"
                   size="sm"
-                  onClick={() => setCurrentTool("pen")}
+                  onClick={() => {
+                    setCurrentTool("pen")
+                    setShowPenSettings(true)
+                  }}
                   className={cn("rounded-md", currentTool === "pen" && "bg-slate-200 hover:bg-slate-300")}
                 >
                   <Pencil className="h-4 w-4" />
@@ -2356,38 +2361,6 @@ export function Brainboard({ boardId }: BrainboardProps) {
           <Separator orientation="vertical" className="h-6 mx-1" />
 
           <ColorPicker color={currentColor} onChange={setCurrentColor} />
-
-          <div className="flex items-center space-x-2 ml-2 bg-slate-50 px-3 py-1.5 rounded-md">
-            <span className="text-xs text-slate-900">Width</span>
-            <input
-              type="range"
-              min="1"
-              max="10"
-              value={lineWidth}
-              onChange={(e) => setLineWidth(Number.parseInt(e.target.value))}
-              className="w-24 h-6 accent-slate-600 
-                [&::-webkit-slider-runnable-track]:h-1.5 
-                [&::-webkit-slider-runnable-track]:rounded-full
-                [&::-webkit-slider-runnable-track]:bg-slate-300
-                [&::-webkit-slider-thumb]:h-4 
-                [&::-webkit-slider-thumb]:w-4 
-                [&::-webkit-slider-thumb]:rounded-full
-                [&::-webkit-slider-thumb]:bg-slate-600
-                [&::-webkit-slider-thumb]:appearance-none
-                [&::-webkit-slider-thumb]:-mt-1
-                [&::-moz-range-track]:h-1.5
-                [&::-moz-range-track]:rounded-full
-                [&::-moz-range-track]:bg-slate-300
-                [&::-moz-range-thumb]:h-4 
-                [&::-moz-range-thumb]:w-4 
-                [&::-moz-range-thumb]:rounded-full
-                [&::-moz-range-thumb]:bg-slate-600
-                [&::-moz-range-thumb]:-mt-1"
-            />
-            <div className="flex items-center justify-center w-6 h-6 bg-white border rounded-md">
-              <span className="text-xs font-medium">{lineWidth}</span>
-            </div>
-          </div>
 
           <Separator orientation="vertical" className="h-6 mx-1" />
 
@@ -2701,6 +2674,51 @@ export function Brainboard({ boardId }: BrainboardProps) {
                   Done
                 </Button>
               </div>
+            </div>
+          </DialogContent>
+        </Dialog>
+      )}
+      {showPenSettings && (
+        <Dialog open={showPenSettings} onOpenChange={setShowPenSettings}>
+          <DialogContent className="sm:max-w-[425px]">
+            <DialogHeader>
+              <DialogTitle>Pen Settings</DialogTitle>
+            </DialogHeader>
+            <div className="grid gap-4 py-4">
+              <div className="flex items-center space-x-4">
+                <span className="text-sm font-medium">Width</span>
+                <input
+                  type="range"
+                  min="1"
+                  max="10"
+                  value={lineWidth}
+                  onChange={(e) => setLineWidth(Number.parseInt(e.target.value))}
+                  className="flex-1 h-6 accent-slate-600 
+                    [&::-webkit-slider-runnable-track]:h-1.5 
+                    [&::-webkit-slider-runnable-track]:rounded-full
+                    [&::-webkit-slider-runnable-track]:bg-slate-300
+                    [&::-webkit-slider-thumb]:h-4 
+                    [&::-webkit-slider-thumb]:w-4 
+                    [&::-webkit-slider-thumb]:rounded-full
+                    [&::-webkit-slider-thumb]:bg-slate-600
+                    [&::-webkit-slider-thumb]:appearance-none
+                    [&::-webkit-slider-thumb]:-mt-1
+                    [&::-moz-range-track]:h-1.5
+                    [&::-moz-range-track]:rounded-full
+                    [&::-moz-range-track]:bg-slate-300
+                    [&::-moz-range-thumb]:h-4 
+                    [&::-moz-range-thumb]:w-4 
+                    [&::-moz-range-thumb]:rounded-full
+                    [&::-moz-range-thumb]:bg-slate-600
+                    [&::-moz-range-thumb]:-mt-1"
+                />
+                <div className="flex items-center justify-center w-8 h-8 bg-white border rounded-md">
+                  <span className="text-sm font-medium">{lineWidth}</span>
+                </div>
+              </div>
+            </div>
+            <div className="flex justify-end">
+              <Button onClick={() => setShowPenSettings(false)}>Done</Button>
             </div>
           </DialogContent>
         </Dialog>
