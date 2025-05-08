@@ -827,6 +827,24 @@ export function Brainboard({ boardId }: BrainboardProps) {
     x = snapped.x
     y = snapped.y
 
+    // Check if clicking on a sticky note
+    const isClickingOnNote = elements.some(element =>
+      element.type === "note" &&
+      element.x !== undefined &&
+      element.y !== undefined &&
+      element.width !== undefined &&
+      element.height !== undefined &&
+      x >= element.x &&
+      x <= element.x + element.width &&
+      y >= element.y &&
+      y <= element.y + element.height
+    )
+
+    // If clicking on a note and not using select tool, don't start drawing
+    if (isClickingOnNote && currentTool !== "select") {
+      return
+    }
+
     setIsDrawing(true)
 
     // Update current user position
@@ -1144,6 +1162,29 @@ export function Brainboard({ boardId }: BrainboardProps) {
 
     // If not drawing, just update cursor position and return
     if (!isDrawing || !currentElement) return
+
+    // Check if current position is on a sticky note
+    const isOnNote = elements.some(element => 
+      element.type === "note" &&
+      element.x !== undefined &&
+      element.y !== undefined &&
+      element.width !== undefined &&
+      element.height !== undefined &&
+      x >= element.x &&
+      x <= element.x + element.width &&
+      y >= element.y &&
+      y <= element.y + element.height
+    )
+
+    // If on a note, stop drawing
+    if (isOnNote) {
+      setIsDrawing(false)
+      if (currentElement) {
+        addElement(currentElement)
+        setCurrentElement(null)
+      }
+      return
+    }
 
     const updatedElement = { ...currentElement }
 
