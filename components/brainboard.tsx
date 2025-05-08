@@ -548,10 +548,30 @@ export function Brainboard({ boardId }: BrainboardProps) {
             case "pen":
               if (element.points && element.points.length > 0) {
                 context.beginPath()
+                context.lineCap = "round"
+                context.lineJoin = "round"
+
+                // Start from the first point
                 context.moveTo(element.points[0].x, element.points[0].y)
-                element.points.forEach(point => {
-                  context.lineTo(point.x, point.y)
-                })
+
+                // If we only have 2 points, draw a straight line
+                if (element.points.length === 2) {
+                  context.lineTo(element.points[1].x, element.points[1].y)
+                } else {
+                  // For more than 2 points, use quadratic curves
+                  for (let i = 1; i < element.points.length - 1; i++) {
+                    // Calculate the midpoint between two points
+                    const xc = (element.points[i].x + element.points[i + 1].x) / 2
+                    const yc = (element.points[i].y + element.points[i + 1].y) / 2
+
+                    // Use quadratic curve to smooth the line
+                    context.quadraticCurveTo(element.points[i].x, element.points[i].y, xc, yc)
+                  }
+
+                  // For the last two points
+                  const lastPoint = element.points[element.points.length - 1]
+                  context.lineTo(lastPoint.x, lastPoint.y)
+                }
                 context.stroke()
 
                 // Draw selection indicator if this element is selected
@@ -1168,7 +1188,29 @@ export function Brainboard({ boardId }: BrainboardProps) {
     switch (currentTool) {
       case "pen":
       case "arrow":
-        updatedElement.points = [...(updatedElement.points || []), { x, y }]
+        if (currentTool === "pen") {
+          // For pen tool, add point smoothing
+          const points = updatedElement.points || []
+          if (points.length > 0) {
+            const lastPoint = points[points.length - 1]
+            // Only add points if we've moved far enough (reduces number of points)
+            const dx = x - lastPoint.x
+            const dy = y - lastPoint.y
+            const distance = Math.sqrt(dx * dx + dy * dy)
+
+            if (distance > 2) { // Minimum distance between points
+              // Add a smoothed point
+              const smoothX = lastPoint.x + (dx * 0.5)
+              const smoothY = lastPoint.y + (dy * 0.5)
+              updatedElement.points = [...points, { x: smoothX, y: smoothY }, { x, y }]
+            }
+          } else {
+            updatedElement.points = [{ x, y }]
+          }
+        } else {
+          // For arrow tool, keep existing behavior
+          updatedElement.points = [...(updatedElement.points || []), { x, y }]
+        }
         break
 
       case "rectangle":
