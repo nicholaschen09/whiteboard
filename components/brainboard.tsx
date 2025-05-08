@@ -2320,358 +2320,376 @@ export function Brainboard({ boardId }: BrainboardProps) {
   return (
     <div className="flex flex-col h-[95vh] border rounded-lg overflow-hidden bg-slate-50 shadow-lg">
       <div className="flex items-center justify-between p-2 border-b bg-slate-50">
-        <div className="flex items-center space-x-auto pb-1 scrollbar-hide">
-          <TooltipProvider>
-            <Tooltip>
-              <TooltipTrigger asChild>
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  onClick={() => setCurrentTool("select")}
-                  className={cn("rounded-md", currentTool === "select" && "bg-slate-200 hover:bg-slate-300")}
-                >
-                  <MousePointer className="h-4 w-4" />
-                </Button>
-              </TooltipTrigger>
-              <TooltipContent>Select</TooltipContent>
-            </Tooltip>
-          </TooltipProvider>
+        <div className="flex items-center justify-between w-full">
+          <div className="flex items-center space-x-2">
+            <TooltipProvider>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => setCurrentTool("select")}
+                    className={cn("rounded-md", currentTool === "select" && "bg-slate-200 hover:bg-slate-300")}
+                  >
+                    <MousePointer className="h-4 w-4" />
+                  </Button>
+                </TooltipTrigger>
+                <TooltipContent>Select</TooltipContent>
+              </Tooltip>
+            </TooltipProvider>
 
-          <TooltipProvider>
-            <Tooltip>
-              <TooltipTrigger asChild>
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  onClick={() => {
-                    setCurrentTool("pen")
-                    setShowPenSettings(true)
-                  }}
-                  className={cn("rounded-md", currentTool === "pen" && "bg-slate-200 hover:bg-slate-300")}
-                >
-                  <Pencil className="h-4 w-4" />
-                </Button>
-              </TooltipTrigger>
-              <TooltipContent>Pen</TooltipContent>
-            </Tooltip>
-          </TooltipProvider>
+            <TooltipProvider>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => {
+                      setCurrentTool("pen")
+                      setShowPenSettings(true)
+                    }}
+                    className={cn("rounded-md", currentTool === "pen" && "bg-slate-200 hover:bg-slate-300")}
+                  >
+                    <Pencil className="h-4 w-4" />
+                  </Button>
+                </TooltipTrigger>
+                <TooltipContent>Pen</TooltipContent>
+              </Tooltip>
+            </TooltipProvider>
 
-          <TooltipProvider>
-            <Tooltip>
-              <TooltipTrigger asChild>
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  onClick={() => setCurrentTool("eraser")}
-                  className={cn("rounded-md", currentTool === "eraser" && "bg-slate-200 hover:bg-slate-300")}
-                >
-                  <Eraser className="h-4 w-4" />
-                </Button>
-              </TooltipTrigger>
-              <TooltipContent>Eraser</TooltipContent>
-            </Tooltip>
-          </TooltipProvider>
-
-          <Separator orientation="vertical" className="h-6 mx-1" />
-
-          <TooltipProvider>
-            <Tooltip>
-              <TooltipTrigger asChild>
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  onClick={() => setCurrentTool("rectangle")}
-                  className={cn("rounded-md", currentTool === "rectangle" && "bg-slate-200 hover:bg-slate-300")}
-                >
-                  <Square className="h-4 w-4" />
-                </Button>
-              </TooltipTrigger>
-              <TooltipContent>Rectangle</TooltipContent>
-            </Tooltip>
-          </TooltipProvider>
-
-          <TooltipProvider>
-            <Tooltip>
-              <TooltipTrigger asChild>
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  onClick={() => setCurrentTool("circle")}
-                  className={cn("rounded-md", currentTool === "circle" && "bg-slate-200 hover:bg-slate-300")}
-                >
-                  <Circle className="h-4 w-4" />
-                </Button>
-              </TooltipTrigger>
-              <TooltipContent>Circle</TooltipContent>
-            </Tooltip>
-          </TooltipProvider>
-
-          <TooltipProvider>
-            <Tooltip>
-              <TooltipTrigger asChild>
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  onClick={() => setCurrentTool("arrow")}
-                  className={cn("rounded-md", currentTool === "arrow" && "bg-slate-200 hover:bg-slate-300")}
-                >
-                  <ArrowUpRight className="h-4 w-4" />
-                </Button>
-              </TooltipTrigger>
-              <TooltipContent>Arrow</TooltipContent>
-            </Tooltip>
-          </TooltipProvider>
+            <TooltipProvider>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => setCurrentTool("eraser")}
+                    className={cn("rounded-md", currentTool === "eraser" && "bg-slate-200 hover:bg-slate-300")}
+                  >
+                    <Eraser className="h-4 w-4" />
+                  </Button>
+                </TooltipTrigger>
+                <TooltipContent>Eraser</TooltipContent>
+              </Tooltip>
+            </TooltipProvider>
+          </div>
 
           <Separator orientation="vertical" className="h-6 mx-1" />
 
-          <TooltipProvider>
-            <Tooltip>
-              <TooltipTrigger asChild>
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  onClick={() => {
-                    setCurrentTool("text")
-                    setShowTextInput(true)
-                  }}
-                  className={cn("rounded-md", currentTool === "text" && "bg-slate-200 hover:bg-slate-300")}
-                >
-                  <Type className="h-4 w-4" />
-                </Button>
-              </TooltipTrigger>
-              <TooltipContent>Text</TooltipContent>
-            </Tooltip>
-          </TooltipProvider>
+          <div className="flex items-center space-x-2">
+            <TooltipProvider>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => setCurrentTool("rectangle")}
+                    className={cn("rounded-md", currentTool === "rectangle" && "bg-slate-200 hover:bg-slate-300")}
+                  >
+                    <Square className="h-4 w-4" />
+                  </Button>
+                </TooltipTrigger>
+                <TooltipContent>Rectangle</TooltipContent>
+              </Tooltip>
+            </TooltipProvider>
 
-          <TooltipProvider>
-            <Tooltip>
-              <TooltipTrigger asChild>
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  onClick={() => {
-                    setCurrentTool("note")
-                    setShowNoteInput(true)
-                  }}
-                  className={cn("rounded-md", currentTool === "note" && "bg-slate-200 hover:bg-slate-300")}
-                >
-                  <StickyNote className="h-4 w-4" />
-                </Button>
-              </TooltipTrigger>
-              <TooltipContent>Sticky Note</TooltipContent>
-            </Tooltip>
-          </TooltipProvider>
+            <TooltipProvider>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => setCurrentTool("circle")}
+                    className={cn("rounded-md", currentTool === "circle" && "bg-slate-200 hover:bg-slate-300")}
+                  >
+                    <Circle className="h-4 w-4" />
+                  </Button>
+                </TooltipTrigger>
+                <TooltipContent>Circle</TooltipContent>
+              </Tooltip>
+            </TooltipProvider>
 
-          <TooltipProvider>
-            <Tooltip>
-              <TooltipTrigger asChild>
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  onClick={() => {
-                    setCurrentTool("sticker")
-                    setShowStickers(true)
-                  }}
-                  className={cn("rounded-md", currentTool === "sticker" && "bg-slate-200 hover:bg-slate-300")}
-                >
-                  <Sticker className="h-4 w-4" />
-                </Button>
-              </TooltipTrigger>
-              <TooltipContent>Stickers</TooltipContent>
-            </Tooltip>
-          </TooltipProvider>
-
-          <TooltipProvider>
-            <Tooltip>
-              <TooltipTrigger asChild>
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  onClick={() => {
-                    setCurrentTool("image")
-                    setShowImageUploader(true)
-                  }}
-                  className={cn("rounded-md", currentTool === "image" && "bg-slate-200 hover:bg-slate-300")}
-                >
-                  <ImageIcon className="h-4 w-4" />
-                </Button>
-              </TooltipTrigger>
-              <TooltipContent>Add Image</TooltipContent>
-            </Tooltip>
-          </TooltipProvider>
+            <TooltipProvider>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => setCurrentTool("arrow")}
+                    className={cn("rounded-md", currentTool === "arrow" && "bg-slate-200 hover:bg-slate-300")}
+                  >
+                    <ArrowUpRight className="h-4 w-4" />
+                  </Button>
+                </TooltipTrigger>
+                <TooltipContent>Arrow</TooltipContent>
+              </Tooltip>
+            </TooltipProvider>
+          </div>
 
           <Separator orientation="vertical" className="h-6 mx-1" />
 
-          <ColorPicker color={currentColor} onChange={setCurrentColor} />
+          <div className="flex items-center space-x-2">
+            <TooltipProvider>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => {
+                      setCurrentTool("text")
+                      setShowTextInput(true)
+                    }}
+                    className={cn("rounded-md", currentTool === "text" && "bg-slate-200 hover:bg-slate-300")}
+                  >
+                    <Type className="h-4 w-4" />
+                  </Button>
+                </TooltipTrigger>
+                <TooltipContent>Text</TooltipContent>
+              </Tooltip>
+            </TooltipProvider>
+
+            <TooltipProvider>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => {
+                      setCurrentTool("note")
+                      setShowNoteInput(true)
+                    }}
+                    className={cn("rounded-md", currentTool === "note" && "bg-slate-200 hover:bg-slate-300")}
+                  >
+                    <StickyNote className="h-4 w-4" />
+                  </Button>
+                </TooltipTrigger>
+                <TooltipContent>Sticky Note</TooltipContent>
+              </Tooltip>
+            </TooltipProvider>
+
+            <TooltipProvider>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => {
+                      setCurrentTool("sticker")
+                      setShowStickers(true)
+                    }}
+                    className={cn("rounded-md", currentTool === "sticker" && "bg-slate-200 hover:bg-slate-300")}
+                  >
+                    <Sticker className="h-4 w-4" />
+                  </Button>
+                </TooltipTrigger>
+                <TooltipContent>Stickers</TooltipContent>
+              </Tooltip>
+            </TooltipProvider>
+
+            <TooltipProvider>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => {
+                      setCurrentTool("image")
+                      setShowImageUploader(true)
+                    }}
+                    className={cn("rounded-md", currentTool === "image" && "bg-slate-200 hover:bg-slate-300")}
+                  >
+                    <ImageIcon className="h-4 w-4" />
+                  </Button>
+                </TooltipTrigger>
+                <TooltipContent>Add Image</TooltipContent>
+              </Tooltip>
+            </TooltipProvider>
+          </div>
 
           <Separator orientation="vertical" className="h-6 mx-1" />
 
-          <TooltipProvider>
-            <Tooltip>
-              <TooltipTrigger asChild>
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  onClick={handleUndo}
-                  disabled={historyIndex <= 0}
-                  className="rounded-md"
-                >
-                  <Undo className="h-4 w-4" />
-                </Button>
-              </TooltipTrigger>
-              <TooltipContent>Undo (Ctrl+Z)</TooltipContent>
-            </Tooltip>
-          </TooltipProvider>
-
-          <TooltipProvider>
-            <Tooltip>
-              <TooltipTrigger asChild>
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  onClick={handleRedo}
-                  disabled={historyIndex >= history.length - 1}
-                  className="rounded-md"
-                >
-                  <Redo className="h-4 w-4" />
-                </Button>
-              </TooltipTrigger>
-              <TooltipContent>Redo (Ctrl+Y)</TooltipContent>
-            </Tooltip>
-          </TooltipProvider>
+          <div className="flex items-center space-x-2">
+            <ColorPicker color={currentColor} onChange={setCurrentColor} />
+          </div>
 
           <Separator orientation="vertical" className="h-6 mx-1" />
 
-          <TooltipProvider>
-            <Tooltip>
-              <TooltipTrigger asChild>
-                <Button variant="ghost" size="sm" onClick={handleEraseBoard} className="rounded-md">
-                  <Trash2 className="h-4 w-4" />
-                </Button>
-              </TooltipTrigger>
-              <TooltipContent>Erase Board</TooltipContent>
-            </Tooltip>
-          </TooltipProvider>
+          <div className="flex items-center space-x-2">
+            <TooltipProvider>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={handleUndo}
+                    disabled={historyIndex <= 0}
+                    className="rounded-md"
+                  >
+                    <Undo className="h-4 w-4" />
+                  </Button>
+                </TooltipTrigger>
+                <TooltipContent>Undo (Ctrl+Z)</TooltipContent>
+              </Tooltip>
+            </TooltipProvider>
 
-          <TooltipProvider>
-            <Tooltip>
-              <TooltipTrigger asChild>
-                <Button variant="ghost" size="sm" onClick={handleDownload} className="rounded-md">
-                  <Download className="h-4 w-4" />
-                </Button>
-              </TooltipTrigger>
-              <TooltipContent>Download</TooltipContent>
-            </Tooltip>
-          </TooltipProvider>
-
-          <Separator orientation="vertical" className="h-6 mx-1" />
-
-          <TooltipProvider>
-            <Tooltip>
-              <TooltipTrigger asChild>
-                <Button variant="ghost" size="sm" onClick={() => setShowShareDialog(true)} className="rounded-md">
-                  <Share2 className="h-4 w-4" />
-                </Button>
-              </TooltipTrigger>
-              <TooltipContent>Share</TooltipContent>
-            </Tooltip>
-          </TooltipProvider>
-
-          <TooltipProvider>
-            <Tooltip>
-              <TooltipTrigger asChild>
-                <Button
-                  variant={showUsers ? "secondary" : "ghost"}
-                  size="sm"
-                  onClick={() => setShowUsers(!showUsers)}
-                  className={cn("rounded-md relative", showUsers && "bg-slate-200 hover:bg-slate-300")}
-                >
-                  <Users className="h-4 w-4" />
-                  <span className="absolute top-0.5 -right-0.5 bg-primary text-primary-foreground rounded-full w-4 h-4 text-[10px] flex items-center justify-center">
-                    {users.filter((u) => u.online).length}
-                  </span>
-                </Button>
-              </TooltipTrigger>
-              <TooltipContent>{isConnected ? "Connected Users" : "Connecting..."}</TooltipContent>
-            </Tooltip>
-          </TooltipProvider>
+            <TooltipProvider>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={handleRedo}
+                    disabled={historyIndex >= history.length - 1}
+                    className="rounded-md"
+                  >
+                    <Redo className="h-4 w-4" />
+                  </Button>
+                </TooltipTrigger>
+                <TooltipContent>Redo (Ctrl+Y)</TooltipContent>
+              </Tooltip>
+            </TooltipProvider>
+          </div>
 
           <Separator orientation="vertical" className="h-6 mx-1" />
 
-          <TooltipProvider>
-            <Tooltip>
-              <TooltipTrigger asChild>
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  onClick={() => setShowSettings(true)}
-                  className="rounded-md"
-                >
-                  <Settings className="h-4 w-4" />
-                </Button>
-              </TooltipTrigger>
-              <TooltipContent>Settings</TooltipContent>
-            </Tooltip>
-          </TooltipProvider>
+          <div className="flex items-center space-x-2">
+            <TooltipProvider>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <Button variant="ghost" size="sm" onClick={handleEraseBoard} className="rounded-md">
+                    <Trash2 className="h-4 w-4" />
+                  </Button>
+                </TooltipTrigger>
+                <TooltipContent>Erase Board</TooltipContent>
+              </Tooltip>
+            </TooltipProvider>
 
-          <TooltipProvider>
-            <Tooltip>
-              <TooltipTrigger asChild>
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  onClick={() => setShowLayers(true)}
-                  className="rounded-md"
-                >
-                  <Layers className="h-4 w-4" />
-                </Button>
-              </TooltipTrigger>
-              <TooltipContent>Manage Layers</TooltipContent>
-            </Tooltip>
-          </TooltipProvider>
-
-          <TooltipProvider>
-            <Tooltip>
-              <TooltipTrigger asChild>
-                <HelpDialog />
-              </TooltipTrigger>
-              <TooltipContent>Help & Tips</TooltipContent>
-            </Tooltip>
-          </TooltipProvider>
+            <TooltipProvider>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <Button variant="ghost" size="sm" onClick={handleDownload} className="rounded-md">
+                    <Download className="h-4 w-4" />
+                  </Button>
+                </TooltipTrigger>
+                <TooltipContent>Download</TooltipContent>
+              </Tooltip>
+            </TooltipProvider>
+          </div>
 
           <Separator orientation="vertical" className="h-6 mx-1" />
 
-          <TooltipProvider>
-            <Tooltip>
-              <TooltipTrigger asChild>
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  onClick={() => setShowAIChat(true)}
-                  className="rounded-md"
-                >
-                  <Sparkles className="h-4 w-4" />
-                </Button>
-              </TooltipTrigger>
-              <TooltipContent>AI Assistant</TooltipContent>
-            </Tooltip>
-          </TooltipProvider>
+          <div className="flex items-center space-x-2">
+            <TooltipProvider>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <Button variant="ghost" size="sm" onClick={() => setShowShareDialog(true)} className="rounded-md">
+                    <Share2 className="h-4 w-4" />
+                  </Button>
+                </TooltipTrigger>
+                <TooltipContent>Share</TooltipContent>
+              </Tooltip>
+            </TooltipProvider>
 
-          <TooltipProvider>
-            <Tooltip>
-              <TooltipTrigger asChild>
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  onClick={handleSave}
-                  className="rounded-md"
-                >
-                  <Save className="h-4 w-4" />
-                </Button>
-              </TooltipTrigger>
-              <TooltipContent>Save</TooltipContent>
-            </Tooltip>
-          </TooltipProvider>
+            <TooltipProvider>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <Button
+                    variant={showUsers ? "secondary" : "ghost"}
+                    size="sm"
+                    onClick={() => setShowUsers(!showUsers)}
+                    className={cn("rounded-md relative", showUsers && "bg-slate-200 hover:bg-slate-300")}
+                  >
+                    <Users className="h-4 w-4" />
+                    <span className="absolute top-0.5 -right-0.5 bg-primary text-primary-foreground rounded-full w-4 h-4 text-[10px] flex items-center justify-center">
+                      {users.filter((u) => u.online).length}
+                    </span>
+                  </Button>
+                </TooltipTrigger>
+                <TooltipContent>{isConnected ? "Connected Users" : "Connecting..."}</TooltipContent>
+              </Tooltip>
+            </TooltipProvider>
+          </div>
+
+          <Separator orientation="vertical" className="h-6 mx-1" />
+
+          <div className="flex items-center space-x-2">
+            <TooltipProvider>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => setShowSettings(true)}
+                    className="rounded-md"
+                  >
+                    <Settings className="h-4 w-4" />
+                  </Button>
+                </TooltipTrigger>
+                <TooltipContent>Settings</TooltipContent>
+              </Tooltip>
+            </TooltipProvider>
+
+            <TooltipProvider>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => setShowLayers(true)}
+                    className="rounded-md"
+                  >
+                    <Layers className="h-4 w-4" />
+                  </Button>
+                </TooltipTrigger>
+                <TooltipContent>Manage Layers</TooltipContent>
+              </Tooltip>
+            </TooltipProvider>
+
+            <TooltipProvider>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <HelpDialog />
+                </TooltipTrigger>
+                <TooltipContent>Help & Tips</TooltipContent>
+              </Tooltip>
+            </TooltipProvider>
+          </div>
+
+          <Separator orientation="vertical" className="h-6 mx-1" />
+
+          <div className="flex items-center space-x-2">
+            <TooltipProvider>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => setShowAIChat(true)}
+                    className="rounded-md"
+                  >
+                    <Sparkles className="h-4 w-4" />
+                  </Button>
+                </TooltipTrigger>
+                <TooltipContent>AI Assistant</TooltipContent>
+              </Tooltip>
+            </TooltipProvider>
+
+            <TooltipProvider>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={handleSave}
+                    className="rounded-md"
+                  >
+                    <Save className="h-4 w-4" />
+                  </Button>
+                </TooltipTrigger>
+                <TooltipContent>Save</TooltipContent>
+              </Tooltip>
+            </TooltipProvider>
+          </div>
         </div>
       </div>
 
