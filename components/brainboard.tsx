@@ -1628,11 +1628,98 @@ export function Brainboard({ boardId }: BrainboardProps) {
     if (!tempCtx) return
 
     // Set the temporary canvas size to match the original
-    tempCanvas.width = canvasRef.current.width
-    tempCanvas.height = canvasRef.current.height
+    const originalCanvas = canvasRef.current
+    const dpr = window.devicePixelRatio || 1
+    tempCanvas.width = originalCanvas.width
+    tempCanvas.height = originalCanvas.height
 
-    // Draw all elements except the grid
+    // Calculate the bounds of all elements
+    let minX = Infinity
+    let minY = Infinity
+    let maxX = -Infinity
+    let maxY = -Infinity
+
+    layers.forEach(layer => {
+      if (layer.visible) {
+        layer.elements.forEach(element => {
+          switch (element.type) {
+            case "pen":
+              if (element.points) {
+                element.points.forEach(point => {
+                  minX = Math.min(minX, point.x)
+                  minY = Math.min(minY, point.y)
+                  maxX = Math.max(maxX, point.x)
+                  maxY = Math.max(maxY, point.y)
+                })
+              }
+              break
+            case "rectangle":
+            case "circle":
+            case "image":
+            case "note":
+              if (element.x !== undefined && element.y !== undefined &&
+                element.width !== undefined && element.height !== undefined) {
+                minX = Math.min(minX, element.x)
+                minY = Math.min(minY, element.y)
+                maxX = Math.max(maxX, element.x + element.width)
+                maxY = Math.max(maxY, element.y + element.height)
+              }
+              break
+            case "text":
+              if (element.x !== undefined && element.y !== undefined && element.text) {
+                const metrics = tempCtx.measureText(element.text)
+                minX = Math.min(minX, element.x)
+                minY = Math.min(minY, element.y - (element.fontSize || 16))
+                maxX = Math.max(maxX, element.x + metrics.width)
+                maxY = Math.max(maxY, element.y)
+              }
+              break
+            case "sticker":
+              if (element.x !== undefined && element.y !== undefined && element.stickerType) {
+                const metrics = tempCtx.measureText(element.stickerType)
+                minX = Math.min(minX, element.x)
+                minY = Math.min(minY, element.y - 32)
+                maxX = Math.max(maxX, element.x + metrics.width)
+                maxY = Math.max(maxY, element.y)
+              }
+              break
+          }
+        })
+      }
+    })
+
+    // Add padding
+    const padding = 50
+    minX = Math.max(0, minX - padding)
+    minY = Math.max(0, minY - padding)
+    maxX = Math.min(originalCanvas.width, maxX + padding)
+    maxY = Math.min(originalCanvas.height, maxY + padding)
+
+    // Calculate the content dimensions
+    const contentWidth = maxX - minX
+    const contentHeight = maxY - minY
+
+    // Calculate the scale to fit the content to the canvas
+    const scaleX = originalCanvas.width / contentWidth
+    const scaleY = originalCanvas.height / contentHeight
+    const scale = Math.min(scaleX, scaleY)
+
+    // Calculate the centered position
+    const scaledWidth = contentWidth * scale
+    const scaledHeight = contentHeight * scale
+    const offsetX = (originalCanvas.width - scaledWidth) / 2
+    const offsetY = (originalCanvas.height - scaledHeight) / 2
+
+    // Clear the temporary canvas
+    tempCtx.fillStyle = 'white'
+    tempCtx.fillRect(0, 0, tempCanvas.width, tempCanvas.height)
+
+    // Draw all elements with proper scaling and centering
     tempCtx.save()
+    tempCtx.translate(offsetX, offsetY)
+    tempCtx.scale(scale, scale)
+    tempCtx.translate(-minX, -minY)
+
     layers.forEach(layer => {
       if (layer.visible) {
         layer.elements.forEach(element => {
@@ -1677,7 +1764,7 @@ export function Brainboard({ boardId }: BrainboardProps) {
 
             case "text":
               if (element.x !== undefined && element.y !== undefined && element.text) {
-                tempCtx.font = "16px Inter, sans-serif"
+                tempCtx.font = `${element.fontSize || 16}px Inter, sans-serif`
                 tempCtx.fillText(element.text, element.x, element.y)
               }
               break
@@ -1715,7 +1802,7 @@ export function Brainboard({ boardId }: BrainboardProps) {
                 const lineWidth = element.lineWidth || 2
                 const arrowSize = Math.max(25, lineWidth * 5)
                 const angle = Math.atan2(end.y - start.y, end.x - start.x)
-                const arrowAngle = Math.PI / 6 // Narrower angle for smaller triangle
+                const arrowAngle = Math.PI / 6
 
                 // Calculate the point where the line should stop before the arrowhead
                 const lineEndX = end.x - (arrowSize * 0.3) * Math.cos(angle)
@@ -1749,37 +1836,37 @@ export function Brainboard({ boardId }: BrainboardProps) {
                 element.y !== undefined &&
                 element.width !== undefined &&
                 element.height !== undefined &&
-                element.text &&
-                context
+                element.text
               ) {
-                // Draw sticky note background with solid color
-                context.fillStyle = element.color
-                context.fillRect(element.x, element.y, element.width, element.height)
+                // Draw sticky note background
+                tempCtx.fillStyle = element.color
+                tempCtx.fillRect(element.x, element.y, element.width, element.height)
                 // Draw text
-                context.fillStyle = "#000000"
-                context.font = "14px Inter, sans-serif"
+                tempCtx.fillStyle = "#000000"
+                tempCtx.font = "14px Inter, sans-serif"
                 const words = element.text.split(" ")
                 let line = ""
                 const lineHeight = 18
                 let offsetY = 20
                 for (let i = 0; i < words.length; i++) {
                   const testLine = line + words[i] + " "
-                  const metrics = context.measureText(testLine)
+                  const metrics = tempCtx.measureText(testLine)
                   if (metrics.width > element.width - 20 && i > 0) {
-                    context.fillText(line, element.x + 10, element.y + offsetY)
+                    tempCtx.fillText(line, element.x + 10, element.y + offsetY)
                     line = words[i] + " "
                     offsetY += lineHeight
                   } else {
                     line = testLine
                   }
                 }
-                context.fillText(line, element.x + 10, element.y + offsetY)
+                tempCtx.fillText(line, element.x + 10, element.y + offsetY)
               }
               break
           }
         })
       }
     })
+
     tempCtx.restore()
 
     // Create download link
