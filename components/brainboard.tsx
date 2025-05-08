@@ -2418,7 +2418,20 @@ export function Brainboard({ boardId }: BrainboardProps) {
                     onClick={() => setCurrentTool("arrow")}
                     className={cn("rounded-md", currentTool === "arrow" && "bg-slate-200 hover:bg-slate-300")}
                   >
-                    <ArrowUpRight className="h-4 w-4" />
+                    <svg
+                      width="20"
+                      height="20"
+                      viewBox="0 0 24 24"
+                      fill="none"
+                      stroke="currentColor"
+                      strokeWidth="2"
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      className="h-5 w-5"
+                    >
+                      <path d="M3 12h16" />
+                      <path d="M12 3l9 9-9 9" />
+                    </svg>
                   </Button>
                 </TooltipTrigger>
                 <TooltipContent>Arrow</TooltipContent>
