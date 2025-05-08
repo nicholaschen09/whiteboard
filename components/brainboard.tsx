@@ -590,6 +590,8 @@ export function Brainboard({ boardId }: BrainboardProps) {
                       maxY: element.points[0].y
                     }
                   )
+
+                  // Draw selection rectangle
                   context.strokeStyle = "#3b82f6"
                   context.lineWidth = 1
                   context.strokeRect(
@@ -860,6 +862,58 @@ export function Brainboard({ boardId }: BrainboardProps) {
         if (!element) return false
 
         switch (element.type) {
+          case "pen":
+            if (element.points && element.points.length > 0) {
+              // Calculate bounds of the pen drawing
+              const bounds = element.points.reduce(
+                (acc, point) => ({
+                  minX: Math.min(acc.minX, point.x),
+                  minY: Math.min(acc.minY, point.y),
+                  maxX: Math.max(acc.maxX, point.x),
+                  maxY: Math.max(acc.maxY, point.y)
+                }),
+                {
+                  minX: element.points[0].x,
+                  minY: element.points[0].y,
+                  maxX: element.points[0].x,
+                  maxY: element.points[0].y
+                }
+              )
+
+              // Check if click is on resize handle
+              const handleSize = 8
+              const isOnResizeHandle =
+                (x >= bounds.maxX - handleSize && x <= bounds.maxX + handleSize &&
+                  y >= bounds.maxY - handleSize && y <= bounds.maxY + handleSize) ? 'se' :
+                  (x >= bounds.minX - handleSize && x <= bounds.minX + handleSize &&
+                    y >= bounds.minY - handleSize && y <= bounds.minY + handleSize) ? 'nw' :
+                    (x >= bounds.maxX - handleSize && x <= bounds.maxX + handleSize &&
+                      y >= bounds.minY - handleSize && y <= bounds.minY + handleSize) ? 'ne' :
+                      (x >= bounds.minX - handleSize && x <= bounds.minX + handleSize &&
+                        y >= bounds.maxY - handleSize && y <= bounds.maxY + handleSize) ? 'sw' : null
+
+              if (isOnResizeHandle) {
+                setIsResizing(true)
+                setResizeDirection(isOnResizeHandle)
+                setOriginalSize({
+                  width: bounds.maxX - bounds.minX,
+                  height: bounds.maxY - bounds.minY,
+                  x: bounds.minX,
+                  y: bounds.minY
+                })
+                setResizeStartPoint({ x, y })
+                return true
+              }
+
+              // Check if click is near any point in the pen drawing
+              return element.points.some(point => {
+                const dx = x - point.x
+                const dy = y - point.y
+                return Math.sqrt(dx * dx + dy * dy) < 10 // 10px click radius
+              })
+            }
+            return false
+
           case "text":
           case "sticker":
             if (element.x !== undefined && element.y !== undefined) {
@@ -905,7 +959,6 @@ export function Brainboard({ boardId }: BrainboardProps) {
             }
             return false
 
-          case "pen":
           case "arrow":
             if (element.points) {
               return element.points.some(point => {
@@ -1032,55 +1085,102 @@ export function Brainboard({ boardId }: BrainboardProps) {
       const dx = x - resizeStartPoint.x
       const dy = y - resizeStartPoint.y
 
+      // Calculate scale factors based on resize direction
+      let scaleX = 1
+      let scaleY = 1
+
       switch (resizeDirection) {
         case 'se':
-          if (element.type === 'circle') {
-            const radius = Math.max(20, Math.sqrt(dx * dx + dy * dy))
-            newWidth = radius * 2
-            newHeight = radius * 2
-          } else {
-            newWidth = Math.max(20, originalSize.width + dx)
-            newHeight = Math.max(20, originalSize.height + dy)
-          }
+          scaleX = (originalSize.width + dx) / originalSize.width
+          scaleY = (originalSize.height + dy) / originalSize.height
           break
         case 'sw':
-          if (element.type === 'circle') {
-            const radius = Math.max(20, Math.sqrt(dx * dx + dy * dy))
-            newWidth = radius * 2
-            newHeight = radius * 2
-            newX = originalSize.x + originalSize.width - newWidth
-          } else {
-            newWidth = Math.max(20, originalSize.width - dx)
-            newHeight = Math.max(20, originalSize.height + dy)
-            newX = originalSize.x + dx
-          }
+          scaleX = (originalSize.width - dx) / originalSize.width
+          scaleY = (originalSize.height + dy) / originalSize.height
+          newX = originalSize.x + dx
           break
         case 'ne':
-          if (element.type === 'circle') {
-            const radius = Math.max(20, Math.sqrt(dx * dx + dy * dy))
-            newWidth = radius * 2
-            newHeight = radius * 2
-            newY = originalSize.y + originalSize.height - newHeight
-          } else {
-            newWidth = Math.max(20, originalSize.width + dx)
-            newHeight = Math.max(20, originalSize.height - dy)
-            newY = originalSize.y + dy
-          }
+          scaleX = (originalSize.width + dx) / originalSize.width
+          scaleY = (originalSize.height - dy) / originalSize.height
+          newY = originalSize.y + dy
           break
         case 'nw':
-          if (element.type === 'circle') {
-            const radius = Math.max(20, Math.sqrt(dx * dx + dy * dy))
-            newWidth = radius * 2
-            newHeight = radius * 2
-            newX = originalSize.x + originalSize.width - newWidth
-            newY = originalSize.y + originalSize.height - newHeight
-          } else {
-            newWidth = Math.max(20, originalSize.width - dx)
-            newHeight = Math.max(20, originalSize.height - dy)
-            newX = originalSize.x + dx
-            newY = originalSize.y + dy
-          }
+          scaleX = (originalSize.width - dx) / originalSize.width
+          scaleY = (originalSize.height - dy) / originalSize.height
+          newX = originalSize.x + dx
+          newY = originalSize.y + dy
           break
+      }
+
+      // Ensure minimum size
+      const minSize = 20
+      if (scaleX * originalSize.width < minSize) {
+        scaleX = minSize / originalSize.width
+        if (resizeDirection === 'sw' || resizeDirection === 'nw') {
+          newX = originalSize.x + originalSize.width - minSize
+        }
+      }
+      if (scaleY * originalSize.height < minSize) {
+        scaleY = minSize / originalSize.height
+        if (resizeDirection === 'ne' || resizeDirection === 'nw') {
+          newY = originalSize.y + originalSize.height - minSize
+        }
+      }
+
+      if (element.type === 'pen' && element.points) {
+        // For pen elements, scale all points relative to the appropriate corner
+        const updatedPoints = element.points.map(point => {
+          const relativeX = point.x - originalSize.x
+          const relativeY = point.y - originalSize.y
+          return {
+            x: newX + relativeX * scaleX,
+            y: newY + relativeY * scaleY
+          }
+        })
+
+        // Update the element's points
+        const updatedElement = {
+          ...element,
+          points: updatedPoints
+        }
+
+        // Update the elements array
+        setElements(prevElements =>
+          prevElements.map(el =>
+            el.id === selectedElement.id ? updatedElement : el
+          )
+        )
+
+        // Update the layers
+        setLayers(prevLayers =>
+          prevLayers.map(layer =>
+            layer.id === activeLayer
+              ? {
+                ...layer,
+                elements: layer.elements.map(el =>
+                  el.id === selectedElement.id ? updatedElement : el
+                )
+              }
+              : layer
+          )
+        )
+
+        // Force a redraw
+        if (context) {
+          drawElements()
+        }
+        return
+      }
+
+      // Handle other element types
+      if (element.type === 'circle') {
+        // For circles, maintain aspect ratio
+        const scale = Math.max(scaleX, scaleY)
+        newWidth = Math.max(minSize, originalSize.width * scale)
+        newHeight = newWidth // Keep it circular
+      } else {
+        newWidth = Math.max(minSize, originalSize.width * scaleX)
+        newHeight = Math.max(minSize, originalSize.height * scaleY)
       }
 
       // Update the element's position and size
