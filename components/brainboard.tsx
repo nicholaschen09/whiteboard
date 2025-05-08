@@ -742,58 +742,35 @@ export function Brainboard({ boardId }: BrainboardProps) {
                 const start = element.points[0]
                 const end = element.points[element.points.length - 1]
 
-                // Draw line
+                // Calculate arrowhead size and angle
+                const lineWidth = element.lineWidth || 2
+                const arrowSize = Math.max(25, lineWidth * 5)
+                const angle = Math.atan2(end.y - start.y, end.x - start.x)
+                const arrowAngle = Math.PI / 6 // Narrower angle for smaller triangle
+
+                // Calculate the point where the line should stop before the arrowhead
+                const lineEndX = end.x - (arrowSize * 0.3) * Math.cos(angle)
+                const lineEndY = end.y - (arrowSize * 0.3) * Math.sin(angle)
+
+                // Draw line stopping before arrowhead
                 context.beginPath()
                 context.moveTo(start.x, start.y)
-                context.lineTo(end.x, end.y)
+                context.lineTo(lineEndX, lineEndY)
                 context.stroke()
 
                 // Draw arrowhead
-                const angle = Math.atan2(end.y - start.y, end.x - start.x)
                 context.beginPath()
                 context.moveTo(end.x, end.y)
-                context.lineTo(end.x - 15 * Math.cos(angle - Math.PI / 6), end.y - 15 * Math.sin(angle - Math.PI / 6))
-                context.lineTo(end.x - 15 * Math.cos(angle + Math.PI / 6), end.y - 15 * Math.sin(angle + Math.PI / 6))
+                context.lineTo(
+                  end.x - arrowSize * Math.cos(angle - arrowAngle),
+                  end.y - arrowSize * Math.sin(angle - arrowAngle)
+                )
+                context.lineTo(
+                  end.x - arrowSize * Math.cos(angle + arrowAngle),
+                  end.y - arrowSize * Math.sin(angle + arrowAngle)
+                )
                 context.closePath()
                 context.fill()
-
-                // Draw selection indicator if this element is selected
-                if (selectedElement && selectedElement.id === element.id) {
-                  const bounds = element.points.reduce(
-                    (acc, point) => ({
-                      minX: Math.min(acc.minX, point.x),
-                      minY: Math.min(acc.minY, point.y),
-                      maxX: Math.max(acc.maxX, point.x),
-                      maxY: Math.max(acc.maxY, point.y)
-                    }),
-                    {
-                      minX: element.points[0].x,
-                      minY: element.points[0].y,
-                      maxX: element.points[0].x,
-                      maxY: element.points[0].y
-                    }
-                  )
-                  context.strokeStyle = "#3b82f6"
-                  context.lineWidth = 1
-                  context.strokeRect(
-                    bounds.minX - 2,
-                    bounds.minY - 2,
-                    bounds.maxX - bounds.minX + 4,
-                    bounds.maxY - bounds.minY + 4
-                  )
-
-                  // Draw resize handles
-                  const handleSize = 8
-                  context.fillStyle = "#3b82f6"
-                  // Top-left
-                  context.fillRect(bounds.minX - handleSize / 2, bounds.minY - handleSize / 2, handleSize, handleSize)
-                  // Top-right
-                  context.fillRect(bounds.maxX - handleSize / 2, bounds.minY - handleSize / 2, handleSize, handleSize)
-                  // Bottom-left
-                  context.fillRect(bounds.minX - handleSize / 2, bounds.maxY - handleSize / 2, handleSize, handleSize)
-                  // Bottom-right
-                  context.fillRect(bounds.maxX - handleSize / 2, bounds.maxY - handleSize / 2, handleSize, handleSize)
-                }
               }
               break
           }
@@ -1164,7 +1141,7 @@ export function Brainboard({ boardId }: BrainboardProps) {
     if (!isDrawing || !currentElement) return
 
     // Check if current position is on a sticky note
-    const isOnNote = elements.some(element => 
+    const isOnNote = elements.some(element =>
       element.type === "note" &&
       element.x !== undefined &&
       element.y !== undefined &&
@@ -1271,18 +1248,33 @@ export function Brainboard({ boardId }: BrainboardProps) {
             const start = updatedElement.points[0]
             const end = updatedElement.points[updatedElement.points.length - 1]
 
-            // Draw line
+            // Calculate arrowhead size and angle
+            const lineWidth = updatedElement.lineWidth || 2
+            const arrowSize = Math.max(25, lineWidth * 5)
+            const angle = Math.atan2(end.y - start.y, end.x - start.x)
+            const arrowAngle = Math.PI / 6 // Narrower angle for smaller triangle
+
+            // Calculate the point where the line should stop before the arrowhead
+            const lineEndX = end.x - (arrowSize * 0.3) * Math.cos(angle)
+            const lineEndY = end.y - (arrowSize * 0.3) * Math.sin(angle)
+
+            // Draw line stopping before arrowhead
             context.beginPath()
             context.moveTo(start.x, start.y)
-            context.lineTo(end.x, end.y)
+            context.lineTo(lineEndX, lineEndY)
             context.stroke()
 
             // Draw arrowhead
-            const angle = Math.atan2(end.y - start.y, end.x - start.x)
             context.beginPath()
             context.moveTo(end.x, end.y)
-            context.lineTo(end.x - 15 * Math.cos(angle - Math.PI / 6), end.y - 15 * Math.sin(angle - Math.PI / 6))
-            context.lineTo(end.x - 15 * Math.cos(angle + Math.PI / 6), end.y - 15 * Math.sin(angle + Math.PI / 6))
+            context.lineTo(
+              end.x - arrowSize * Math.cos(angle - arrowAngle),
+              end.y - arrowSize * Math.sin(angle - arrowAngle)
+            )
+            context.lineTo(
+              end.x - arrowSize * Math.cos(angle + arrowAngle),
+              end.y - arrowSize * Math.sin(angle + arrowAngle)
+            )
             context.closePath()
             context.fill()
           }
@@ -1588,18 +1580,33 @@ export function Brainboard({ boardId }: BrainboardProps) {
                 const start = element.points[0]
                 const end = element.points[element.points.length - 1]
 
-                // Draw line
+                // Calculate arrowhead size and angle
+                const lineWidth = element.lineWidth || 2
+                const arrowSize = Math.max(25, lineWidth * 5)
+                const angle = Math.atan2(end.y - start.y, end.x - start.x)
+                const arrowAngle = Math.PI / 6 // Narrower angle for smaller triangle
+
+                // Calculate the point where the line should stop before the arrowhead
+                const lineEndX = end.x - (arrowSize * 0.3) * Math.cos(angle)
+                const lineEndY = end.y - (arrowSize * 0.3) * Math.sin(angle)
+
+                // Draw line stopping before arrowhead
                 tempCtx.beginPath()
                 tempCtx.moveTo(start.x, start.y)
-                tempCtx.lineTo(end.x, end.y)
+                tempCtx.lineTo(lineEndX, lineEndY)
                 tempCtx.stroke()
 
                 // Draw arrowhead
-                const angle = Math.atan2(end.y - start.y, end.x - start.x)
                 tempCtx.beginPath()
                 tempCtx.moveTo(end.x, end.y)
-                tempCtx.lineTo(end.x - 15 * Math.cos(angle - Math.PI / 6), end.y - 15 * Math.sin(angle - Math.PI / 6))
-                tempCtx.lineTo(end.x - 15 * Math.cos(angle + Math.PI / 6), end.y - 15 * Math.sin(angle + Math.PI / 6))
+                tempCtx.lineTo(
+                  end.x - arrowSize * Math.cos(angle - arrowAngle),
+                  end.y - arrowSize * Math.sin(angle - arrowAngle)
+                )
+                tempCtx.lineTo(
+                  end.x - arrowSize * Math.cos(angle + arrowAngle),
+                  end.y - arrowSize * Math.sin(angle + arrowAngle)
+                )
                 tempCtx.closePath()
                 tempCtx.fill()
               }
