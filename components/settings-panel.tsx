@@ -10,16 +10,12 @@ interface SettingsPanelProps {
     onClose: () => void
     showGrid: boolean
     onShowGridChange: (show: boolean) => void
-    snapToGrid: boolean
-    onSnapToGridChange: (snap: boolean) => void
 }
 
 export function SettingsPanel({
     onClose,
     showGrid,
     onShowGridChange,
-    snapToGrid,
-    onSnapToGridChange
 }: SettingsPanelProps) {
     return (
         <Card className="absolute bottom-4 right-4 w-80 p-4 shadow-lg">
@@ -32,25 +28,11 @@ export function SettingsPanel({
 
             <div className="space-y-4">
                 <div className="flex items-center justify-between">
-                    <Label htmlFor="auto-save">Auto-save</Label>
-                    <Switch id="auto-save" />
-                </div>
-
-                <div className="flex items-center justify-between">
                     <Label htmlFor="show-grid">Show Grid</Label>
                     <Switch
                         id="show-grid"
                         checked={showGrid}
                         onCheckedChange={onShowGridChange}
-                    />
-                </div>
-
-                <div className="flex items-center justify-between">
-                    <Label htmlFor="snap-to-grid">Snap to Grid</Label>
-                    <Switch
-                        id="snap-to-grid"
-                        checked={snapToGrid}
-                        onCheckedChange={onSnapToGridChange}
                     />
                 </div>
             </div>
