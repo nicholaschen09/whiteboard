@@ -2313,23 +2313,63 @@ export function Brainboard({ boardId }: BrainboardProps) {
 
   const handleSave = () => {
     try {
-      // Save all layers and their elements
+      // Create a more compact save data structure
       const saveData = {
-        layers,
-        elements,
-        history,
-        historyIndex,
+        layers: layers.map(layer => ({
+          id: layer.id,
+          name: layer.name,
+          visible: layer.visible,
+          locked: layer.locked,
+          elements: layer.elements.map(element => ({
+            id: element.id,
+            type: element.type,
+            points: element.points,
+            x: element.x,
+            y: element.y,
+            width: element.width,
+            height: element.height,
+            text: element.text,
+            color: element.color,
+            userId: element.userId,
+            stickerType: element.stickerType,
+            imageUrl: element.imageUrl,
+            lineWidth: element.lineWidth,
+            fontSize: element.fontSize
+          }))
+        })),
         activeLayer,
         currentColor,
-        lineWidth
+        lineWidth,
+        showGrid,
+        snapToGrid
       }
 
-      localStorage.setItem('whiteboard-data', JSON.stringify(saveData))
-
-      toast({
-        title: "Saved!",
-        description: "Your whiteboard has been saved successfully.",
-      })
+      // Save to localStorage with error handling
+      try {
+        localStorage.setItem('whiteboard-data', JSON.stringify(saveData))
+        toast({
+          title: "Saved!",
+          description: "Your whiteboard has been saved successfully.",
+        })
+      } catch (storageError) {
+        console.error('Storage error:', storageError)
+        // If localStorage is full or unavailable, try to save a smaller version
+        const minimalSaveData = {
+          layers: layers.map(layer => ({
+            id: layer.id,
+            name: layer.name,
+            visible: layer.visible,
+            locked: layer.locked,
+            elements: layer.elements
+          })),
+          activeLayer
+        }
+        localStorage.setItem('whiteboard-data', JSON.stringify(minimalSaveData))
+        toast({
+          title: "Saved (Minimal)",
+          description: "Saved a minimal version of your whiteboard due to storage limitations.",
+        })
+      }
     } catch (e) {
       console.error('Failed to save whiteboard:', e)
       toast({
@@ -2340,44 +2380,25 @@ export function Brainboard({ boardId }: BrainboardProps) {
     }
   }
 
-  // Replace the existing load effect with this enhanced version
+  // Update the auto-save effect to be more efficient
   useEffect(() => {
-    try {
-      const savedData = localStorage.getItem('whiteboard-data')
-      if (savedData) {
-        const data = JSON.parse(savedData)
+    let saveTimeout: NodeJS.Timeout
 
-        // Restore all saved data
-        if (data.layers) setLayers(data.layers)
-        if (data.elements) setElements(data.elements)
-        if (data.history) setHistory(data.history)
-        if (data.historyIndex !== undefined) setHistoryIndex(data.historyIndex)
-        if (data.activeLayer) setActiveLayer(data.activeLayer)
-        if (data.currentColor) setCurrentColor(data.currentColor)
-        if (data.lineWidth) setLineWidth(data.lineWidth)
-
-        // Force a redraw after loading
-        if (context && canvasRef.current) {
-          drawElements()
-        }
-      }
-    } catch (e) {
-      console.error('Failed to load saved data:', e)
-    }
-  }, []) // Empty dependency array means this runs once on mount
-
-  // Update the auto-save effect
-  useEffect(() => {
     const autoSave = () => {
       try {
         const saveData = {
-          layers,
-          elements,
-          history,
-          historyIndex,
+          layers: layers.map(layer => ({
+            id: layer.id,
+            name: layer.name,
+            visible: layer.visible,
+            locked: layer.locked,
+            elements: layer.elements
+          })),
           activeLayer,
           currentColor,
-          lineWidth
+          lineWidth,
+          showGrid,
+          snapToGrid
         }
         localStorage.setItem('whiteboard-data', JSON.stringify(saveData))
       } catch (e) {
@@ -2385,34 +2406,68 @@ export function Brainboard({ boardId }: BrainboardProps) {
       }
     }
 
-    // Auto-save every 10 seconds
-    const interval = setInterval(autoSave, 10000)
-
-    return () => clearInterval(interval)
-  }, [layers, elements, history, historyIndex, activeLayer, currentColor, lineWidth])
-
-  // Add save on window unload
-  useEffect(() => {
-    const handleBeforeUnload = () => {
-      try {
-        const saveData = {
-          layers,
-          elements,
-          history,
-          historyIndex,
-          activeLayer,
-          currentColor,
-          lineWidth
-        }
-        localStorage.setItem('whiteboard-data', JSON.stringify(saveData))
-      } catch (e) {
-        console.error('Failed to save on unload:', e)
-      }
+    // Debounce the auto-save to prevent too frequent saves
+    const debouncedAutoSave = () => {
+      clearTimeout(saveTimeout)
+      saveTimeout = setTimeout(autoSave, 5000) // Save after 5 seconds of inactivity
     }
 
-    window.addEventListener('beforeunload', handleBeforeUnload)
-    return () => window.removeEventListener('beforeunload', handleBeforeUnload)
-  }, [layers, elements, history, historyIndex, activeLayer, currentColor, lineWidth])
+    // Add event listeners for changes that should trigger auto-save
+    const handleChange = () => {
+      debouncedAutoSave()
+    }
+
+    // Listen for changes in relevant state
+    handleChange()
+
+    return () => {
+      clearTimeout(saveTimeout)
+    }
+  }, [layers, activeLayer, currentColor, lineWidth, showGrid, snapToGrid])
+
+  // Update the load effect to handle errors better
+  useEffect(() => {
+    try {
+      const savedData = localStorage.getItem('whiteboard-data')
+      if (savedData) {
+        const data = JSON.parse(savedData)
+
+        // Validate the data structure before applying
+        if (data && typeof data === 'object') {
+          if (Array.isArray(data.layers)) {
+            setLayers(data.layers)
+          }
+          if (data.activeLayer) {
+            setActiveLayer(data.activeLayer)
+          }
+          if (data.currentColor) {
+            setCurrentColor(data.currentColor)
+          }
+          if (typeof data.lineWidth === 'number') {
+            setLineWidth(data.lineWidth)
+          }
+          if (typeof data.showGrid === 'boolean') {
+            setShowGrid(data.showGrid)
+          }
+          if (typeof data.snapToGrid === 'boolean') {
+            setSnapToGrid(data.snapToGrid)
+          }
+
+          // Force a redraw after loading
+          if (context && canvasRef.current) {
+            drawElements()
+          }
+        }
+      }
+    } catch (e) {
+      console.error('Failed to load saved data:', e)
+      toast({
+        title: "Error",
+        description: "Failed to load saved data. Starting with a fresh whiteboard.",
+        variant: "destructive",
+      })
+    }
+  }, []) // Empty dependency array means this runs once on mount
 
   const [showAIChat, setShowAIChat] = useState(false)
 
