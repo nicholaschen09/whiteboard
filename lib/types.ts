@@ -24,6 +24,7 @@ export type DrawingElement = {
     stickerType?: string
     imageUrl?: string
     lineWidth?: number
+    fontSize?: number
 }
 
 export type Layer = {

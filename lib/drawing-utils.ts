@@ -1,22 +1,25 @@
-import type { DrawingElement, Layer } from "./types"
+import { DrawingElement, Layer } from './types'
 
-export const drawGrid = (context: CanvasRenderingContext2D, canvas: HTMLCanvasElement, showGrid: boolean, GRID_SIZE: number) => {
-    if (!context || !canvas || !showGrid) return
+export const drawGrid = (
+    context: CanvasRenderingContext2D,
+    canvas: HTMLCanvasElement,
+    showGrid: boolean,
+    gridSize: number
+) => {
+    if (!showGrid) return
 
     context.save()
-    context.strokeStyle = 'rgba(229, 231, 235, 0.8)' // Light grey color with less transparency
-    context.lineWidth = 1 // Make lines more visible
+    context.strokeStyle = 'rgba(229, 231, 235, 0.8)'
+    context.lineWidth = 1
 
-    // Draw vertical lines
-    for (let x = 0; x <= canvas.width; x += GRID_SIZE) {
+    for (let x = 0; x <= canvas.width; x += gridSize) {
         context.beginPath()
         context.moveTo(x, 0)
         context.lineTo(x, canvas.height)
         context.stroke()
     }
 
-    // Draw horizontal lines
-    for (let y = 0; y <= canvas.height; y += GRID_SIZE) {
+    for (let y = 0; y <= canvas.height; y += gridSize) {
         context.beginPath()
         context.moveTo(0, y)
         context.lineTo(canvas.width, y)
@@ -26,33 +29,19 @@ export const drawGrid = (context: CanvasRenderingContext2D, canvas: HTMLCanvasEl
     context.restore()
 }
 
-export const snapToGridPoint = (x: number, y: number, snapToGrid: boolean, GRID_SIZE: number) => {
+export const snapToGridPoint = (x: number, y: number, gridSize: number, snapToGrid: boolean) => {
     if (!snapToGrid) return { x, y }
     return {
-        x: Math.round(x / GRID_SIZE) * GRID_SIZE,
-        y: Math.round(y / GRID_SIZE) * GRID_SIZE
+        x: Math.round(x / gridSize) * gridSize,
+        y: Math.round(y / gridSize) * gridSize
     }
 }
 
-export const drawElements = (context: CanvasRenderingContext2D, layers: Layer[], currentElement?: DrawingElement) => {
-    if (!context) return
-
-    // Draw all elements from layers
-    layers.forEach(layer => {
-        if (layer.visible) {
-            layer.elements.forEach(element => {
-                drawElement(context, element)
-            })
-        }
-    })
-
-    // Draw current element if provided
-    if (currentElement) {
-        drawElement(context, currentElement)
-    }
-}
-
-const drawElement = (context: CanvasRenderingContext2D, element: DrawingElement) => {
+export const drawElement = (
+    context: CanvasRenderingContext2D,
+    element: DrawingElement,
+    imageCache: { [key: string]: HTMLImageElement }
+) => {
     context.strokeStyle = element.color
     context.fillStyle = element.color
     context.lineWidth = element.lineWidth || 2
@@ -61,23 +50,27 @@ const drawElement = (context: CanvasRenderingContext2D, element: DrawingElement)
         case "pen":
             if (element.points && element.points.length > 0) {
                 context.beginPath()
+                context.lineCap = "round"
+                context.lineJoin = "round"
                 context.moveTo(element.points[0].x, element.points[0].y)
 
-                element.points.forEach((point) => {
-                    context.lineTo(point.x, point.y)
-                })
-
+                if (element.points.length === 2) {
+                    context.lineTo(element.points[1].x, element.points[1].y)
+                } else {
+                    for (let i = 1; i < element.points.length - 1; i++) {
+                        const xc = (element.points[i].x + element.points[i + 1].x) / 2
+                        const yc = (element.points[i].y + element.points[i + 1].y) / 2
+                        context.quadraticCurveTo(element.points[i].x, element.points[i].y, xc, yc)
+                    }
+                    context.lineTo(element.points[element.points.length - 1].x, element.points[element.points.length - 1].y)
+                }
                 context.stroke()
             }
             break
 
         case "rectangle":
-            if (
-                element.x !== undefined &&
-                element.y !== undefined &&
-                element.width !== undefined &&
-                element.height !== undefined
-            ) {
+            if (element.x !== undefined && element.y !== undefined &&
+                element.width !== undefined && element.height !== undefined) {
                 context.beginPath()
                 context.rect(element.x, element.y, element.width, element.height)
                 context.stroke()
@@ -86,39 +79,29 @@ const drawElement = (context: CanvasRenderingContext2D, element: DrawingElement)
 
         case "circle":
             if (element.x !== undefined && element.y !== undefined && element.width !== undefined) {
+                const centerX = element.x + element.width / 2
+                const centerY = element.y + element.width / 2
+                const radius = element.width / 2
                 context.beginPath()
-                context.arc(element.x + element.width / 2, element.y + element.width / 2, element.width / 2, 0, Math.PI * 2)
+                context.arc(centerX, centerY, radius, 0, Math.PI * 2)
                 context.stroke()
             }
             break
 
         case "text":
             if (element.x !== undefined && element.y !== undefined && element.text) {
-                context.font = "16px Inter, sans-serif"
+                context.font = `${element.fontSize || 16}px Inter, sans-serif`
                 context.fillText(element.text, element.x, element.y)
             }
             break
 
-        case "sticker":
-            if (element.x !== undefined && element.y !== undefined && element.stickerType) {
-                context.font = "32px sans-serif"
-                context.fillText(element.stickerType, element.x, element.y)
-            }
-            break
-
         case "image":
-            if (
-                element.x !== undefined &&
-                element.y !== undefined &&
-                element.width !== undefined &&
-                element.height !== undefined &&
-                element.imageUrl
-            ) {
-                const img = new Image()
-                img.src = element.imageUrl
-                img.crossOrigin = "anonymous"
-                img.onload = () => {
-                    context.drawImage(img, element.x!, element.y!, element.width!, element.height!)
+            if (element.x !== undefined && element.y !== undefined &&
+                element.width !== undefined && element.height !== undefined &&
+                element.imageUrl) {
+                const img = imageCache[element.imageUrl]
+                if (img?.complete) {
+                    context.drawImage(img, element.x, element.y, element.width, element.height)
                 }
             }
             break
@@ -127,62 +110,57 @@ const drawElement = (context: CanvasRenderingContext2D, element: DrawingElement)
             if (element.points && element.points.length > 1) {
                 const start = element.points[0]
                 const end = element.points[element.points.length - 1]
+                const lineWidth = element.lineWidth || 2
+                const arrowSize = Math.max(25, lineWidth * 5)
+                const angle = Math.atan2(end.y - start.y, end.x - start.x)
+                const arrowAngle = Math.PI / 6
 
-                // Draw line
+                const lineEndX = end.x - (arrowSize * 0.3) * Math.cos(angle)
+                const lineEndY = end.y - (arrowSize * 0.3) * Math.sin(angle)
+
                 context.beginPath()
                 context.moveTo(start.x, start.y)
-                context.lineTo(end.x, end.y)
+                context.lineTo(lineEndX, lineEndY)
                 context.stroke()
 
-                // Draw arrowhead
-                const angle = Math.atan2(end.y - start.y, end.x - start.x)
                 context.beginPath()
                 context.moveTo(end.x, end.y)
-                context.lineTo(end.x - 15 * Math.cos(angle - Math.PI / 6), end.y - 15 * Math.sin(angle - Math.PI / 6))
-                context.lineTo(end.x - 15 * Math.cos(angle + Math.PI / 6), end.y - 15 * Math.sin(angle + Math.PI / 6))
+                context.lineTo(
+                    end.x - arrowSize * Math.cos(angle - arrowAngle),
+                    end.y - arrowSize * Math.sin(angle - arrowAngle)
+                )
+                context.lineTo(
+                    end.x - arrowSize * Math.cos(angle + arrowAngle),
+                    end.y - arrowSize * Math.sin(angle + arrowAngle)
+                )
                 context.closePath()
                 context.fill()
             }
             break
-
-        case "note":
-            if (
-                element.x !== undefined &&
-                element.y !== undefined &&
-                element.width !== undefined &&
-                element.height !== undefined &&
-                element.text
-            ) {
-                // Draw sticky note background
-                context.fillStyle = element.color + "80" // Add transparency
-                context.fillRect(element.x, element.y, element.width, element.height)
-
-                // Draw text
-                context.fillStyle = "#000000"
-                context.font = "14px Inter, sans-serif"
-
-                // Wrap text
-                const words = element.text.split(" ")
-                let line = ""
-                const lineHeight = 18
-                let offsetY = 20
-
-                for (let i = 0; i < words.length; i++) {
-                    const testLine = line + words[i] + " "
-                    const metrics = context.measureText(testLine)
-                    const testWidth = metrics.width
-
-                    if (testWidth > element.width - 20 && i > 0) {
-                        context.fillText(line, element.x + 10, element.y + offsetY)
-                        line = words[i] + " "
-                        offsetY += lineHeight
-                    } else {
-                        line = testLine
-                    }
-                }
-
-                context.fillText(line, element.x + 10, element.y + offsetY)
-            }
-            break
     }
+}
+
+export const drawElements = (
+    context: CanvasRenderingContext2D,
+    canvas: HTMLCanvasElement,
+    layers: Layer[],
+    showGrid: boolean,
+    gridSize: number,
+    imageCache: { [key: string]: HTMLImageElement }
+) => {
+    if (!context || !canvas) return
+
+    context.clearRect(0, 0, canvas.width, canvas.height)
+
+    if (showGrid) {
+        drawGrid(context, canvas, showGrid, gridSize)
+    }
+
+    layers.forEach(layer => {
+        if (layer.visible) {
+            layer.elements.forEach(element => {
+                drawElement(context, element, imageCache)
+            })
+        }
+    })
 } 
