@@ -339,7 +339,7 @@ export function Brainboard({ boardId }: BrainboardProps) {
     ws.addEventListener("open", () => {
       setIsConnected(true)
       toast({
-        title: "Connected to Brainboard",
+        title: "Connected to Whiteboard",
         description: "You are now collaborating in real-time",
       })
     })
