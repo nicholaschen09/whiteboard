@@ -49,49 +49,8 @@ import {
 import { HelpDialog } from "./help-dialog"
 import { Input } from "@/components/ui/input"
 import { AIChat } from "./ai-chat"
-
-// Mock WebSocket connection
-const createMockWebSocket = () => {
-  const listeners = {
-    message: [] as ((data: any) => void)[],
-    open: [] as (() => void)[],
-  }
-
-  return {
-    send: (data: string) => {
-      try {
-        const parsedData = JSON.parse(data)
-        if (parsedData.type === "draw" && parsedData.element) {
-          // Simulate broadcasting to other users after a delay
-          setTimeout(() => {
-            listeners.message.forEach((listener) =>
-              listener({
-                data: JSON.stringify({
-                  ...parsedData,
-                  userId: Math.floor(Math.random() * 3) + 2, // Assign to a random user that's not the current user
-                }),
-              }),
-            )
-          }, 300)
-        }
-      } catch (e) {
-        console.error("Failed to parse outgoing WebSocket message", e)
-      }
-    },
-    addEventListener: (event: string, callback: any) => {
-      if (event === "message") listeners.message.push(callback)
-      if (event === "open") {
-        listeners.open.push(callback)
-        // Simulate connection open
-        setTimeout(() => {
-          callback()
-        }, 500)
-      }
-    },
-    removeEventListener: () => { },
-    close: () => { },
-  }
-}
+import { createWebSocket } from "@/lib/websocket"
+import { helpContent } from "@/lib/help-content"
 
 // Initialize with just the current user
 const initialUsers = [
@@ -333,62 +292,43 @@ export function Brainboard({ boardId }: BrainboardProps) {
 
   // Initialize WebSocket connection
   useEffect(() => {
-    const ws = createMockWebSocket()
+    if (boardId) {
+      const socket = createWebSocket(boardId)
+      setWs(socket)
 
-    ws.addEventListener("open", () => {
-      setIsConnected(true)
-      toast({
-        title: "Connected to Whiteboard",
-        description: "You are now collaborating in real-time",
-      })
-    })
-
-    ws.addEventListener("message", (event: any) => {
-      try {
-        if (!event.data) return
-
-        const data = JSON.parse(event.data)
-        if (!data) return
-
-        if (data.type === "draw" && data.element) {
-          // Add the element to the current layer
-          setLayers(prevLayers =>
-            prevLayers.map(layer =>
-              layer.id === activeLayer
-                ? { ...layer, elements: [...layer.elements, data.element] }
+      socket.addEventListener("message", (event) => {
+        try {
+          const data = JSON.parse(event.data)
+          if (data.type === "draw" && data.element) {
+            setElements(prev => [...prev, data.element])
+          } else if (data.type === "userMove") {
+            setUsers(prev => prev.map(user =>
+              user.id === data.userId
+                ? { ...user, x: data.x, y: data.y }
+                : user
+            ))
+          } else if (data.type === "clear") {
+            setElements([])
+          } else if (data.type === "layerUpdate") {
+            setLayers(prev => prev.map(layer =>
+              layer.id === data.layerId
+                ? { ...layer, ...data.layer }
                 : layer
-            )
-          )
-          setElements(prev => [...prev, data.element])
-        } else if (data.type === "userMove" && typeof data.userId === 'number' && typeof data.x === 'number' && typeof data.y === 'number') {
-          setUsers(prev => prev.map(user =>
-            user.id === data.userId
-              ? { ...user, x: data.x, y: data.y }
-              : user
-          ))
-        } else if (data.type === "clear" && data.userId) {
-          // Handle board clear from other users
-          setLayers(prevLayers =>
-            prevLayers.map(layer => ({
-              ...layer,
-              elements: []
-            }))
-          )
-          setElements([])
-          setHistory([])
-          setHistoryIndex(-1)
+            ))
+          } else if (data.type === "sync") {
+            setLayers(data.layers)
+            setActiveLayer(data.activeLayer)
+          }
+        } catch (e) {
+          console.error("Failed to handle WebSocket message:", e)
         }
-      } catch (e) {
-        console.error("Failed to parse WebSocket message", e)
+      })
+
+      return () => {
+        socket.close()
       }
-    })
-
-    setSocket(ws)
-
-    return () => {
-      ws.close()
     }
-  }, [activeLayer]) // Add activeLayer to dependencies
+  }, [boardId])
 
   // Initialize canvas context
   useEffect(() => {
@@ -1530,6 +1470,14 @@ export function Brainboard({ boardId }: BrainboardProps) {
     }
     if (!isDrawing || !currentElement) return
 
+    // Send the element to other users via WebSocket
+    if (ws) {
+      ws.send(JSON.stringify({
+        type: "draw",
+        element: currentElement
+      }))
+    }
+
     addElement(currentElement)
     setCurrentElement(null)
     setIsDrawing(false)
@@ -2549,6 +2497,8 @@ export function Brainboard({ boardId }: BrainboardProps) {
   }
 
   const [showPenSettings, setShowPenSettings] = useState(false)
+
+  const [ws, setWs] = useState<ReturnType<typeof createWebSocket> | null>(null)
 
   return (
     <div className="flex flex-col h-[95vh] border rounded-lg overflow-hidden bg-slate-50 shadow-lg">
