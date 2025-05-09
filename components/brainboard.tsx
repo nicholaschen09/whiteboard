@@ -731,6 +731,7 @@ export function Brainboard({ boardId }: BrainboardProps) {
             case "sticker":
               if (element.x !== undefined && element.y !== undefined && element.stickerType) {
                 context.font = "32px sans-serif"
+                context.fillStyle = element.color
                 context.fillText(element.stickerType, element.x, element.y)
 
                 // Draw selection indicator if this element is selected
@@ -1972,11 +1973,11 @@ export function Brainboard({ boardId }: BrainboardProps) {
     if (!canvasRef.current) return
 
     const canvas = canvasRef.current
+    const rect = canvas.getBoundingClientRect()
 
-    // Use the stored position from when the sticker tool was selected
-    // Or default to center if not available
-    const x = currentPosition ? currentPosition.x : canvas.width / 2
-    const y = currentPosition ? currentPosition.y : canvas.height / 2
+    // Get the current mouse position or use center of canvas
+    const x = currentPosition ? currentPosition.x : rect.width / 2
+    const y = currentPosition ? currentPosition.y : rect.height / 2
 
     const newElement: DrawingElement = {
       id: Date.now().toString(),
@@ -1988,10 +1989,43 @@ export function Brainboard({ boardId }: BrainboardProps) {
       stickerType,
     }
 
-    addElement(newElement)
+    // Add to history for undo/redo
+    const newHistory = history.slice(0, historyIndex + 1)
+    newHistory.push([...elements, newElement])
+    setHistory(newHistory)
+    setHistoryIndex(newHistory.length - 1)
+
+    // Add the sticker to the current layer
+    setLayers(prevLayers =>
+      prevLayers.map(layer =>
+        layer.id === activeLayer
+          ? { ...layer, elements: [...layer.elements, newElement] }
+          : layer
+      )
+    )
+
+    // Update elements state
+    setElements(prevElements => [...prevElements, newElement])
+
+    // Send to WebSocket if connected
+    if (socket && isConnected) {
+      socket.send(
+        JSON.stringify({
+          type: "draw",
+          element: newElement,
+          layerId: activeLayer
+        })
+      )
+    }
+
+    // Force redraw
+    if (context) {
+      drawElements()
+    }
+
     setShowStickers(false)
-    // Reset current position
     setCurrentPosition(null)
+    setCurrentTool("select") // Switch back to select tool after adding sticker
   }
 
   // Replace the handleAddImage function with this improved version:
