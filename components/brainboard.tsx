@@ -2990,8 +2990,6 @@ export function Brainboard({ boardId }: BrainboardProps) {
             onClose={() => setShowSettings(false)}
             showGrid={showGrid}
             onShowGridChange={setShowGrid}
-            snapToGrid={snapToGrid}
-            onSnapToGridChange={setSnapToGrid}
           />
         </div>
       )}
