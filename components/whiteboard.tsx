@@ -11,7 +11,7 @@ import { UserPresence } from "./user-presence"
 
 // Initialize with just the current user
 const initialUsers = [
-  { id: 1, name: "You", avatar: "/placeholder.svg?height=40&width=40", color: "#FF5733", x: 100, y: 150 }
+  { id: 1, name: "You", avatar: "/placeholder.svg?height=40&width=40", color: "#FF5733", x: 100, y: 150, online: true }
 ]
 
 type Tool = "select" | "pen" | "rectangle" | "circle" | "text"
