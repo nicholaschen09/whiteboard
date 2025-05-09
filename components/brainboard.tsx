@@ -244,25 +244,24 @@ export function Brainboard({ boardId }: BrainboardProps) {
   // Update elements when active layer changes
   useEffect(() => {
     const currentLayer = layers.find(layer => layer.id === activeLayer)
-    if (currentLayer) {
+    if (currentLayer && JSON.stringify(currentLayer.elements) !== JSON.stringify(elements)) {
       setElements(currentLayer.elements)
     }
   }, [activeLayer])
 
   // Update layers when elements change
   useEffect(() => {
-    setLayers(prevLayers => {
-      return prevLayers.map(layer => {
-        if (layer.id === activeLayer) {
-          return {
-            ...layer,
-            elements: elements
-          }
-        }
-        return layer
-      })
-    })
-  }, [elements, activeLayer])
+    const currentLayer = layers.find(layer => layer.id === activeLayer)
+    if (currentLayer && JSON.stringify(currentLayer.elements) !== JSON.stringify(elements)) {
+      setLayers(prevLayers =>
+        prevLayers.map(layer =>
+          layer.id === activeLayer
+            ? { ...layer, elements: elements }
+            : layer
+        )
+      )
+    }
+  }, [elements])
 
   // Set initial active layer
   useEffect(() => {
@@ -541,6 +540,9 @@ export function Brainboard({ boardId }: BrainboardProps) {
     layers.forEach(layer => {
       if (layer.visible) {
         layer.elements.forEach(element => {
+          // Skip drawing if the layer is locked and we're not in select mode
+          if (layer.locked && currentTool !== "select") return
+
           context.strokeStyle = element.color
           context.fillStyle = element.color
           context.lineWidth = element.lineWidth || 2
@@ -815,6 +817,16 @@ export function Brainboard({ boardId }: BrainboardProps) {
   // Update handleMouseDown to better handle resize initiation
   const handleMouseDown = (e: React.MouseEvent<HTMLCanvasElement>) => {
     if (!context || !canvasRef.current) return
+
+    const currentLayer = layers.find(layer => layer.id === activeLayer)
+    if (currentLayer?.locked) {
+      toast({
+        title: "Layer Locked",
+        description: "This layer is locked. Unlock it to make changes.",
+        variant: "destructive",
+      })
+      return
+    }
 
     const canvas = canvasRef.current
     const rect = canvas.getBoundingClientRect()
@@ -2110,9 +2122,8 @@ export function Brainboard({ boardId }: BrainboardProps) {
       const newIndex = direction === 'up' ? currentIndex - 1 : currentIndex + 1
 
       if (newIndex >= 0 && newIndex < newLayers.length) {
-        const temp = newLayers[currentIndex]
-        newLayers[currentIndex] = newLayers[newIndex]
-        newLayers[newIndex] = temp
+        // Swap the layers
+        [newLayers[currentIndex], newLayers[newIndex]] = [newLayers[newIndex], newLayers[currentIndex]]
       }
 
       return newLayers
@@ -2121,10 +2132,12 @@ export function Brainboard({ boardId }: BrainboardProps) {
 
   const handleLayerDelete = (layerId: string) => {
     if (layers.length > 1) {
-      setLayers(prevLayers => prevLayers.filter(layer => layer.id !== layerId))
-      if (activeLayer === layerId) {
-        setActiveLayer(layers[0].id)
-      }
+      const remainingLayers = layers.filter(layer => layer.id !== layerId)
+      const newActiveLayer = remainingLayers[0]
+
+      setLayers(remainingLayers)
+      setActiveLayer(newActiveLayer.id)
+      setElements(newActiveLayer.elements)
     }
   }
 
@@ -2136,8 +2149,10 @@ export function Brainboard({ boardId }: BrainboardProps) {
       locked: false,
       elements: []
     }
+
     setLayers(prevLayers => [...prevLayers, newLayer])
     setActiveLayer(newLayer.id)
+    setElements([])
   }
 
   // Update handleErasing to properly remove elements
@@ -2988,11 +3003,20 @@ export function Brainboard({ boardId }: BrainboardProps) {
       {showLayers && (
         <LayersPanel
           layers={layers}
+          activeLayer={activeLayer}
           onClose={() => setShowLayers(false)}
           onLayerVisibilityChange={handleLayerVisibilityChange}
           onLayerLockChange={handleLayerLockChange}
           onLayerMove={handleLayerMove}
           onLayerDelete={handleLayerDelete}
+          onAddLayer={handleAddLayer}
+          onLayerSelect={(layerId) => {
+            const selectedLayer = layers.find(layer => layer.id === layerId)
+            if (selectedLayer) {
+              setActiveLayer(layerId)
+              setElements(selectedLayer.elements)
+            }
+          }}
         />
       )}
       {showTextInput && (

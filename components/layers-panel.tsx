@@ -4,7 +4,8 @@ import { Button } from "@/components/ui/button"
 import { Card } from "@/components/ui/card"
 import { Label } from "@/components/ui/label"
 import { Switch } from "@/components/ui/switch"
-import { X, Eye, EyeOff, ArrowUp, ArrowDown, Trash2 } from "lucide-react"
+import { X, Eye, EyeOff, ArrowUp, ArrowDown, Trash2, Lock, LockOpen } from "lucide-react"
+import { cn } from "@/lib/utils"
 
 interface Layer {
     id: string
@@ -15,20 +16,26 @@ interface Layer {
 
 interface LayersPanelProps {
     layers: Layer[]
+    activeLayer: string
     onClose: () => void
     onLayerVisibilityChange: (layerId: string, visible: boolean) => void
     onLayerLockChange: (layerId: string, locked: boolean) => void
     onLayerMove: (layerId: string, direction: 'up' | 'down') => void
     onLayerDelete: (layerId: string) => void
+    onAddLayer: () => void
+    onLayerSelect: (layerId: string) => void
 }
 
 export function LayersPanel({
     layers,
+    activeLayer,
     onClose,
     onLayerVisibilityChange,
     onLayerLockChange,
     onLayerMove,
     onLayerDelete,
+    onAddLayer,
+    onLayerSelect
 }: LayersPanelProps) {
     return (
         <Card className="absolute bottom-4 right-4 w-80 p-4 shadow-lg">
@@ -40,10 +47,13 @@ export function LayersPanel({
             </div>
 
             <div className="space-y-2">
-                {layers.map((layer, index) => (
+                {layers.map((layer) => (
                     <div
                         key={layer.id}
-                        className="flex items-center justify-between p-2 rounded-md bg-slate-100"
+                        className={cn(
+                            "flex items-center justify-between p-2 rounded-md",
+                            layer.id === activeLayer && "bg-slate-100"
+                        )}
                     >
                         <div className="flex items-center space-x-2">
                             <Button
@@ -58,7 +68,24 @@ export function LayersPanel({
                                     <EyeOff className="h-4 w-4" />
                                 )}
                             </Button>
-                            <span className="text-sm">{layer.name}</span>
+                            <Button
+                                variant="ghost"
+                                size="icon"
+                                onClick={() => onLayerLockChange(layer.id, !layer.locked)}
+                                className="h-6 w-6"
+                            >
+                                {layer.locked ? (
+                                    <Lock className="h-4 w-4" />
+                                ) : (
+                                    <LockOpen className="h-4 w-4" />
+                                )}
+                            </Button>
+                            <span
+                                className="text-sm cursor-pointer"
+                                onClick={() => onLayerSelect(layer.id)}
+                            >
+                                {layer.name}
+                            </span>
                         </div>
 
                         <div className="flex items-center space-x-1">
@@ -66,7 +93,7 @@ export function LayersPanel({
                                 variant="ghost"
                                 size="icon"
                                 onClick={() => onLayerMove(layer.id, 'up')}
-                                disabled={index === 0}
+                                disabled={layers.indexOf(layer) === 0}
                                 className="h-6 w-6"
                             >
                                 <ArrowUp className="h-4 w-4" />
@@ -75,7 +102,7 @@ export function LayersPanel({
                                 variant="ghost"
                                 size="icon"
                                 onClick={() => onLayerMove(layer.id, 'down')}
-                                disabled={index === layers.length - 1}
+                                disabled={layers.indexOf(layer) === layers.length - 1}
                                 className="h-6 w-6"
                             >
                                 <ArrowDown className="h-4 w-4" />
@@ -98,9 +125,7 @@ export function LayersPanel({
                     variant="outline"
                     size="sm"
                     className="w-full"
-                    onClick={() => {
-                        // Add new layer functionality will be implemented in Brainboard
-                    }}
+                    onClick={onAddLayer}
                 >
                     Add Layer
                 </Button>
