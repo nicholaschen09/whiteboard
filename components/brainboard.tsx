@@ -1018,6 +1018,10 @@ export function Brainboard({ boardId }: BrainboardProps) {
     setCurrentElement(newElement)
   }
 
+  const [textColor, setTextColor] = useState(currentColor)
+  const [editingText, setEditingText] = useState<DrawingElement | null>(null)
+
+  // Update handleTextSubmit to use textColor
   const handleTextSubmit = () => {
     if (textInputValue.trim()) {
       const canvas = canvasRef.current
@@ -1032,12 +1036,12 @@ export function Brainboard({ boardId }: BrainboardProps) {
           x,
           y,
           text: textInputValue,
-          color: currentColor,
+          color: textColor, // Use textColor instead of currentColor
           userId: 1,
           lineWidth,
-          fontSize: 16,  // Default font size
-          width: 100,    // Default width
-          height: 20     // Default height
+          fontSize: 16,
+          width: 100,
+          height: 20
         }
         addElement(newElement)
 
@@ -1048,6 +1052,93 @@ export function Brainboard({ boardId }: BrainboardProps) {
     }
     setShowTextInput(false)
     setTextInputValue("")
+    setTextColor(currentColor) // Reset text color to current color
+  }
+
+  // Add text update handler
+  const handleTextUpdate = () => {
+    if (!editingText || !textInputValue.trim()) return
+
+    const updatedElement = {
+      ...editingText,
+      text: textInputValue,
+      color: textColor // Use textColor instead of currentColor
+    }
+
+    setElements(prevElements =>
+      prevElements.map(el =>
+        el.id === editingText.id ? updatedElement : el
+      )
+    )
+
+    setLayers(prevLayers =>
+      prevLayers.map(layer =>
+        layer.id === activeLayer
+          ? {
+            ...layer,
+            elements: layer.elements.map(el =>
+              el.id === editingText.id ? updatedElement : el
+            )
+          }
+          : layer
+      )
+    )
+
+    setShowTextInput(false)
+    setTextInputValue("")
+    setEditingText(null)
+    setTextColor(currentColor) // Reset text color to current color
+
+    if (context) {
+      drawElements()
+    }
+  }
+
+  // Update handleDoubleClick to handle text editing
+  const handleDoubleClick = (e: React.MouseEvent<HTMLCanvasElement>) => {
+    if (!canvasRef.current) return
+
+    const canvas = canvasRef.current
+    const rect = canvas.getBoundingClientRect()
+    const x = e.clientX - rect.left
+    const y = e.clientY - rect.top
+
+    // Find if we clicked on a text element
+    const clickedText = elements.find(element =>
+      element.type === "text" &&
+      element.x !== undefined &&
+      element.y !== undefined &&
+      element.text &&
+      x >= element.x - 2 &&
+      x <= element.x + (context?.measureText(element.text).width || 0) + 2 &&
+      y >= element.y - (element.fontSize || 16) - 2 &&
+      y <= element.y + 4
+    )
+
+    // Find if we clicked on a note
+    const clickedNote = elements.find(element =>
+      element.type === "note" &&
+      element.x !== undefined &&
+      element.y !== undefined &&
+      element.width !== undefined &&
+      element.height !== undefined &&
+      x >= element.x &&
+      x <= element.x + element.width &&
+      y >= element.y &&
+      y <= element.y + element.height
+    )
+
+    if (clickedText) {
+      setEditingText(clickedText)
+      setTextInputValue(clickedText.text || "")
+      setTextColor(clickedText.color)
+      setShowTextInput(true)
+    } else if (clickedNote) {
+      setSelectedElement(clickedNote)
+      setShowNoteInput(true)
+      setNoteInputValue(clickedNote.text || "")
+      setNotePosition({ x: clickedNote.x || 0, y: clickedNote.y || 0 })
+    }
   }
 
   // Update handleMouseMove to make resizing smoother
@@ -2331,36 +2422,6 @@ export function Brainboard({ boardId }: BrainboardProps) {
   const [notePosition, setNotePosition] = useState({ x: 0, y: 0 })
   const [noteColor, setNoteColor] = useState("#FFEB3B") // Default yellow color
 
-  // Add double-click handler for editing notes
-  const handleDoubleClick = (e: React.MouseEvent<HTMLCanvasElement>) => {
-    if (!canvasRef.current) return
-
-    const canvas = canvasRef.current
-    const rect = canvas.getBoundingClientRect()
-    const x = e.clientX - rect.left
-    const y = e.clientY - rect.top
-
-    // Find if we clicked on a note
-    const clickedNote = elements.find(element =>
-      element.type === "note" &&
-      element.x !== undefined &&
-      element.y !== undefined &&
-      element.width !== undefined &&
-      element.height !== undefined &&
-      x >= element.x &&
-      x <= element.x + element.width &&
-      y >= element.y &&
-      y <= element.y + element.height
-    )
-
-    if (clickedNote) {
-      setSelectedElement(clickedNote)
-      setShowNoteInput(true)
-      setNoteInputValue(clickedNote.text || "")
-      setNotePosition({ x: clickedNote.x || 0, y: clickedNote.y || 0 })
-    }
-  }
-
   // Update createNote function to use selected color
   const createNote = () => {
     if (!canvasRef.current || !noteInputValue.trim()) return
@@ -2856,12 +2917,25 @@ export function Brainboard({ boardId }: BrainboardProps) {
         />
       )}
       {showTextInput && (
-        <Dialog open={showTextInput} onOpenChange={setShowTextInput}>
+        <Dialog open={showTextInput} onOpenChange={(open) => {
+          setShowTextInput(open)
+          if (!open) {
+            setEditingText(null)
+            setTextInputValue("")
+            setTextColor(currentColor)
+          }
+        }}>
           <DialogContent className="sm:max-w-[425px]">
             <DialogHeader>
-              <DialogTitle>Add Text</DialogTitle>
+              <DialogTitle>{editingText ? "Edit Text" : "Add Text"}</DialogTitle>
             </DialogHeader>
             <div className="grid gap-4 py-4">
+              <div className="space-y-2">
+                <label className="text-sm font-medium">Text Color</label>
+                <div className="flex items-center gap-2">
+                  <ColorPicker color={textColor} onChange={setTextColor} />
+                </div>
+              </div>
               <Input
                 value={textInputValue}
                 onChange={(e) => setTextInputValue(e.target.value)}
@@ -2869,16 +2943,21 @@ export function Brainboard({ boardId }: BrainboardProps) {
                 autoFocus
                 onKeyDown={(e) => {
                   if (e.key === "Enter") {
-                    handleTextSubmit()
+                    editingText ? handleTextUpdate() : handleTextSubmit()
                   }
                 }}
               />
               <div className="flex justify-end gap-2">
-                <Button variant="outline" onClick={() => setShowTextInput(false)}>
+                <Button variant="outline" onClick={() => {
+                  setShowTextInput(false)
+                  setEditingText(null)
+                  setTextInputValue("")
+                  setTextColor(currentColor)
+                }}>
                   Cancel
                 </Button>
-                <Button onClick={handleTextSubmit}>
-                  Add Text
+                <Button onClick={editingText ? handleTextUpdate : handleTextSubmit}>
+                  {editingText ? "Update" : "Add Text"}
                 </Button>
               </div>
             </div>
