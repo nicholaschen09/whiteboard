@@ -1791,25 +1791,19 @@ export function Brainboard({ boardId }: BrainboardProps) {
     const contentWidth = maxX - minX
     const contentHeight = maxY - minY
 
-    // Calculate the scale to fit the content to the canvas
-    const scaleX = originalCanvas.width / contentWidth
-    const scaleY = originalCanvas.height / contentHeight
-    const scale = Math.min(scaleX, scaleY)
+    // Set the temporary canvas size to match the content
+    tempCanvas.width = contentWidth * dpr
+    tempCanvas.height = contentHeight * dpr
 
-    // Calculate the centered position
-    const scaledWidth = contentWidth * scale
-    const scaledHeight = contentHeight * scale
-    const offsetX = (originalCanvas.width - scaledWidth) / 2
-    const offsetY = (originalCanvas.height - scaledHeight) / 2
+    // Scale the context to ensure correct drawing
+    tempCtx.scale(dpr, dpr)
 
-    // Clear the temporary canvas
+    // Clear the temporary canvas with white background
     tempCtx.fillStyle = 'white'
     tempCtx.fillRect(0, 0, tempCanvas.width, tempCanvas.height)
 
     // Draw all elements with proper scaling and centering
     tempCtx.save()
-    tempCtx.translate(offsetX, offsetY)
-    tempCtx.scale(scale, scale)
     tempCtx.translate(-minX, -minY)
 
     layers.forEach(layer => {
@@ -1876,11 +1870,9 @@ export function Brainboard({ boardId }: BrainboardProps) {
                 element.height !== undefined &&
                 element.imageUrl
               ) {
-                const img = new Image()
-                img.src = element.imageUrl
-                img.crossOrigin = "anonymous"
-                img.onload = () => {
-                  tempCtx.drawImage(img, element.x!, element.y!, element.width!, element.height!)
+                const img = imageCache[element.imageUrl] || preloadImage(element.imageUrl)
+                if (img.complete) {
+                  tempCtx.drawImage(img, element.x, element.y, element.width, element.height)
                 }
               }
               break
@@ -1964,7 +1956,7 @@ export function Brainboard({ boardId }: BrainboardProps) {
     // Create download link
     const link = document.createElement("a")
     link.download = "brainboard.png"
-    link.href = tempCanvas.toDataURL()
+    link.href = tempCanvas.toDataURL("image/png")
     link.click()
   }
 
