@@ -2818,24 +2818,6 @@ export function Brainboard({ boardId }: BrainboardProps) {
               </Tooltip>
             </TooltipProvider>
 
-            <TooltipProvider>
-              <Tooltip>
-                <TooltipTrigger asChild>
-                  <Button
-                    variant={showUsers ? "secondary" : "ghost"}
-                    size="sm"
-                    onClick={() => setShowUsers(!showUsers)}
-                    className={cn("rounded-md relative", showUsers && "bg-slate-200 hover:bg-slate-300")}
-                  >
-                    <Users className="h-4 w-4" />
-                    <span className="absolute top-0.5 -right-0.5 bg-primary text-primary-foreground rounded-full w-4 h-4 text-[10px] flex items-center justify-center">
-                      {users.filter((u) => u.online).length}
-                    </span>
-                  </Button>
-                </TooltipTrigger>
-                <TooltipContent>{isConnected ? "Connected Users" : "Connecting..."}</TooltipContent>
-              </Tooltip>
-            </TooltipProvider>
           </div>
 
           <Separator orientation="vertical" className="h-6 mx-1" />
