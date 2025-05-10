@@ -20,23 +20,18 @@ import {
   ImageIcon,
   Sticker,
   StickyNote,
-  ArrowUpRight,
   Eraser,
   Layers,
   Settings,
-  HelpCircle,
   Save,
-  Sparkles,
 } from "lucide-react"
 import { ColorPicker } from "./color-picker"
-import { UserPresence } from "./user-presence"
 import { ShareDialog } from "./share-dialog"
 import { StickersPanel } from "./stickers-panel"
 import { ImageUploader } from "./image-uploader"
 import { cn } from "@/lib/utils"
 import { useToast } from "@/hooks/use-toast"
 import { Separator } from "@/components/ui/separator"
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { SettingsPanel } from "./settings-panel"
 import { LayersPanel } from "./layers-panel"
 import {
@@ -44,12 +39,10 @@ import {
   DialogContent,
   DialogHeader,
   DialogTitle,
-  DialogTrigger,
 } from "@/components/ui/dialog"
 import { HelpDialog } from "./help-dialog"
 import { Input } from "@/components/ui/input"
 import { createWebSocket } from "@/lib/websocket"
-import { helpContent } from "@/lib/help-content"
 
 // Initialize with just the current user
 const initialUsers = [
