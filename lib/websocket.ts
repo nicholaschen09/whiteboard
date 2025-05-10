@@ -63,21 +63,11 @@ export class WhiteboardWebSocket {
             this.reconnectAttempts++
             this.reconnectTimeout *= 2 // Exponential backoff
 
-            toast({
-                title: "Connection lost",
-                description: `Attempting to reconnect (${this.reconnectAttempts}/${this.maxReconnectAttempts})...`,
-                variant: "destructive",
-            })
-
             setTimeout(() => {
                 this.connect()
             }, this.reconnectTimeout)
         } else {
-            toast({
-                title: "Connection failed",
-                description: "Unable to establish connection. Please refresh the page.",
-                variant: "destructive",
-            })
+
         }
     }
 
@@ -86,11 +76,7 @@ export class WhiteboardWebSocket {
             this.ws.send(data)
         } else {
             console.warn('WebSocket is not connected')
-            toast({
-                title: "Connection error",
-                description: "Unable to send data. Please check your connection.",
-                variant: "destructive",
-            })
+
         }
     }
 
