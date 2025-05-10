@@ -54,6 +54,9 @@ type Tool =
   | "pen"
   | "rectangle"
   | "circle"
+  | "triangle"
+  | "star"
+  | "line"
   | "text"
   | "sticker"
   | "image"
@@ -731,6 +734,54 @@ export function Brainboard({ boardId }: BrainboardProps) {
                 context.fill()
               }
               break
+
+            case "triangle":
+              if (element.x !== undefined && element.y !== undefined &&
+                element.width !== undefined && element.height !== undefined) {
+                context.beginPath()
+                context.moveTo(element.x + element.width / 2, element.y)
+                context.lineTo(element.x + element.width, element.y + element.height)
+                context.lineTo(element.x, element.y + element.height)
+                context.closePath()
+                context.stroke()
+              }
+              break
+
+            case "star":
+              if (element.x !== undefined && element.y !== undefined &&
+                element.width !== undefined && element.height !== undefined) {
+                const spikes = 5
+                const outerRadius = element.width / 2
+                const innerRadius = outerRadius * 0.4
+                const centerX = element.x + outerRadius
+                const centerY = element.y + outerRadius
+
+                context.beginPath()
+                for (let i = 0; i < spikes * 2; i++) {
+                  const radius = i % 2 === 0 ? outerRadius : innerRadius
+                  const angle = (Math.PI * i) / spikes
+                  const x = centerX + Math.cos(angle) * radius
+                  const y = centerY + Math.sin(angle) * radius
+                  if (i === 0) {
+                    context.moveTo(x, y)
+                  } else {
+                    context.lineTo(x, y)
+                  }
+                }
+                context.closePath()
+                context.stroke()
+              }
+              break
+
+            case "line":
+              if (element.x !== undefined && element.y !== undefined &&
+                element.width !== undefined && element.height !== undefined) {
+                context.beginPath()
+                context.moveTo(element.x, element.y)
+                context.lineTo(element.x + element.width, element.y + element.height)
+                context.stroke()
+              }
+              break
           }
         })
       }
@@ -1354,6 +1405,27 @@ export function Brainboard({ boardId }: BrainboardProps) {
           updatedElement.height = radius * 2
         }
         break
+
+      case "triangle":
+        if (updatedElement.x !== undefined && updatedElement.y !== undefined) {
+          updatedElement.width = x - updatedElement.x
+          updatedElement.height = y - updatedElement.y
+        }
+        break
+
+      case "star":
+        if (updatedElement.x !== undefined && updatedElement.y !== undefined) {
+          updatedElement.width = x - updatedElement.x
+          updatedElement.height = y - updatedElement.y
+        }
+        break
+
+      case "line":
+        if (updatedElement.x !== undefined && updatedElement.y !== undefined) {
+          updatedElement.width = x - updatedElement.x
+          updatedElement.height = y - updatedElement.y
+        }
+        break
     }
 
     setCurrentElement(updatedElement)
@@ -1444,6 +1516,66 @@ export function Brainboard({ boardId }: BrainboardProps) {
             )
             context.closePath()
             context.fill()
+          }
+          break
+
+        case "triangle":
+          if (
+            updatedElement.x !== undefined &&
+            updatedElement.y !== undefined &&
+            updatedElement.width !== undefined &&
+            updatedElement.height !== undefined
+          ) {
+            context.beginPath()
+            context.moveTo(updatedElement.x + updatedElement.width / 2, updatedElement.y)
+            context.lineTo(updatedElement.x + updatedElement.width, updatedElement.y + updatedElement.height)
+            context.lineTo(updatedElement.x, updatedElement.y + updatedElement.height)
+            context.closePath()
+            context.stroke()
+          }
+          break
+
+        case "star":
+          if (
+            updatedElement.x !== undefined &&
+            updatedElement.y !== undefined &&
+            updatedElement.width !== undefined &&
+            updatedElement.height !== undefined
+          ) {
+            const spikes = 5
+            const outerRadius = updatedElement.width / 2
+            const innerRadius = outerRadius * 0.4
+            const centerX = updatedElement.x + outerRadius
+            const centerY = updatedElement.y + outerRadius
+
+            context.beginPath()
+            for (let i = 0; i < spikes * 2; i++) {
+              const radius = i % 2 === 0 ? outerRadius : innerRadius
+              const angle = (Math.PI * i) / spikes
+              const x = centerX + Math.cos(angle) * radius
+              const y = centerY + Math.sin(angle) * radius
+              if (i === 0) {
+                context.moveTo(x, y)
+              } else {
+                context.lineTo(x, y)
+              }
+            }
+            context.closePath()
+            context.stroke()
+          }
+          break
+
+        case "line":
+          if (
+            updatedElement.x !== undefined &&
+            updatedElement.y !== undefined &&
+            updatedElement.width !== undefined &&
+            updatedElement.height !== undefined
+          ) {
+            context.beginPath()
+            context.moveTo(updatedElement.x, updatedElement.y)
+            context.lineTo(updatedElement.x + updatedElement.width, updatedElement.y + updatedElement.height)
+            context.stroke()
           }
           break
       }
@@ -2618,6 +2750,99 @@ export function Brainboard({ boardId }: BrainboardProps) {
                   </Button>
                 </TooltipTrigger>
                 <TooltipContent>Circle</TooltipContent>
+              </Tooltip>
+            </TooltipProvider>
+
+            <TooltipProvider>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => {
+                      setPendingTool("triangle")
+                      setShowColorPicker(true)
+                    }}
+                    className={cn("rounded-md", currentTool === "triangle" && "bg-slate-200 hover:bg-slate-300")}
+                  >
+                    <svg
+                      width="16"
+                      height="16"
+                      viewBox="0 0 24 24"
+                      fill="none"
+                      stroke="currentColor"
+                      strokeWidth="2"
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      className="h-4 w-4"
+                    >
+                      <path d="M12 3L3 21h18L12 3z" />
+                    </svg>
+                  </Button>
+                </TooltipTrigger>
+                <TooltipContent>Triangle</TooltipContent>
+              </Tooltip>
+            </TooltipProvider>
+
+            <TooltipProvider>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => {
+                      setPendingTool("star")
+                      setShowColorPicker(true)
+                    }}
+                    className={cn("rounded-md", currentTool === "star" && "bg-slate-200 hover:bg-slate-300")}
+                  >
+                    <svg
+                      width="16"
+                      height="16"
+                      viewBox="0 0 24 24"
+                      fill="none"
+                      stroke="currentColor"
+                      strokeWidth="2"
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      className="h-4 w-4"
+                    >
+                      <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2" />
+                    </svg>
+                  </Button>
+                </TooltipTrigger>
+                <TooltipContent>Star</TooltipContent>
+              </Tooltip>
+            </TooltipProvider>
+
+            <TooltipProvider>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => {
+                      setPendingTool("line")
+                      setShowColorPicker(true)
+                    }}
+                    className={cn("rounded-md", currentTool === "line" && "bg-slate-200 hover:bg-slate-300")}
+                  >
+                    <svg
+                      width="16"
+                      height="16"
+                      viewBox="0 0 24 24"
+                      fill="none"
+                      stroke="currentColor"
+                      strokeWidth="2"
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      className="h-4 w-4"
+                    >
+                      <line x1="5" y1="12" x2="19" y2="12" />
+                    </svg>
+                  </Button>
+                </TooltipTrigger>
+                <TooltipContent>Straight Line</TooltipContent>
               </Tooltip>
             </TooltipProvider>
 
