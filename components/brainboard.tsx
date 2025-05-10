@@ -731,6 +731,35 @@ export function Brainboard({ boardId }: BrainboardProps) {
                 )
                 context.closePath()
                 context.fill()
+
+                // Draw selection indicator if this element is selected
+                if (selectedElement && selectedElement.id === element.id) {
+                  context.strokeStyle = "#3b82f6"
+                  context.lineWidth = 1
+
+                  // Draw selection rectangle
+                  const bounds = {
+                    minX: Math.min(start.x, end.x),
+                    minY: Math.min(start.y, end.y),
+                    maxX: Math.max(start.x, end.x),
+                    maxY: Math.max(start.y, end.y)
+                  }
+
+                  context.strokeRect(
+                    bounds.minX - 2,
+                    bounds.minY - 2,
+                    bounds.maxX - bounds.minX + 4,
+                    bounds.maxY - bounds.minY + 4
+                  )
+
+                  // Draw resize handles
+                  const handleSize = 8
+                  context.fillStyle = "#3b82f6"
+                  // Start point handle
+                  context.fillRect(start.x - handleSize / 2, start.y - handleSize / 2, handleSize, handleSize)
+                  // End point handle
+                  context.fillRect(end.x - handleSize / 2, end.y - handleSize / 2, handleSize, handleSize)
+                }
               }
               break
 
@@ -743,32 +772,30 @@ export function Brainboard({ boardId }: BrainboardProps) {
                 context.lineTo(element.x, element.y + element.height)
                 context.closePath()
                 context.stroke()
-              }
-              break
 
-            case "star":
-              if (element.x !== undefined && element.y !== undefined &&
-                element.width !== undefined && element.height !== undefined) {
-                const spikes = 5
-                const outerRadius = element.width / 2
-                const innerRadius = outerRadius * 0.4
-                const centerX = element.x + outerRadius
-                const centerY = element.y + outerRadius
+                // Draw selection indicator if this element is selected
+                if (selectedElement && selectedElement.id === element.id) {
+                  context.strokeStyle = "#3b82f6"
+                  context.lineWidth = 1
 
-                context.beginPath()
-                for (let i = 0; i < spikes * 2; i++) {
-                  const radius = i % 2 === 0 ? outerRadius : innerRadius
-                  const angle = (Math.PI * i) / spikes
-                  const x = centerX + Math.cos(angle) * radius
-                  const y = centerY + Math.sin(angle) * radius
-                  if (i === 0) {
-                    context.moveTo(x, y)
-                  } else {
-                    context.lineTo(x, y)
-                  }
+                  // Draw selection rectangle
+                  context.strokeRect(
+                    element.x - 2,
+                    element.y - 2,
+                    element.width + 4,
+                    element.height + 4
+                  )
+
+                  // Draw resize handles
+                  const handleSize = 8
+                  context.fillStyle = "#3b82f6"
+                  // Top point handle
+                  context.fillRect(element.x + element.width / 2 - handleSize / 2, element.y - handleSize / 2, handleSize, handleSize)
+                  // Bottom right point handle
+                  context.fillRect(element.x + element.width - handleSize / 2, element.y + element.height - handleSize / 2, handleSize, handleSize)
+                  // Bottom left point handle
+                  context.fillRect(element.x - handleSize / 2, element.y + element.height - handleSize / 2, handleSize, handleSize)
                 }
-                context.closePath()
-                context.stroke()
               }
               break
 
@@ -995,14 +1022,10 @@ export function Brainboard({ boardId }: BrainboardProps) {
               // Check if click is on resize handle
               const handleSize = 8
               const isOnResizeHandle =
-                (x >= element.x + element.width - handleSize && x <= element.x + element.width + handleSize &&
-                  y >= element.y + element.height - handleSize && y <= element.y + element.height + handleSize) ? 'se' :
-                  (x >= element.x - handleSize && x <= element.x + handleSize &&
-                    y >= element.y - handleSize && y <= element.y + handleSize) ? 'nw' :
-                    (x >= element.x + element.width - handleSize && x <= element.x + element.width + handleSize &&
-                      y >= element.y - handleSize && y <= element.y + handleSize) ? 'ne' :
-                      (x >= element.x - handleSize && x <= element.x + handleSize &&
-                        y >= element.y + element.height - handleSize && y <= element.y + element.height + handleSize) ? 'sw' : null
+                (x >= element.x - handleSize && x <= element.x + handleSize &&
+                  y >= element.y - handleSize && y <= element.y + handleSize) ? 'nw' :
+                  (x >= element.x + element.width - handleSize && x <= element.x + element.width + handleSize &&
+                    y >= element.y + element.height - handleSize && y <= element.y + element.height + handleSize) ? 'se' : null
 
               if (isOnResizeHandle) {
                 setIsResizing(true)
@@ -1018,20 +1041,70 @@ export function Brainboard({ boardId }: BrainboardProps) {
               }
 
               // Check if click is near the line
-              const lineLength = Math.sqrt(element.width * element.width + element.height * element.height)
-              const lineVector = { x: element.width / lineLength, y: element.height / lineLength }
-              const clickVector = { x: x - element.x, y: y - element.y }
-              const dotProduct = clickVector.x * lineVector.x + clickVector.y * lineVector.y
-              const projection = {
-                x: dotProduct * lineVector.x,
-                y: dotProduct * lineVector.y
+              const isNearLine = (px: number, py: number) => {
+                const lineLength = Math.sqrt(element.width * element.width + element.height * element.height)
+                const distance = Math.abs(
+                  (element.height * px - element.width * py + element.width * element.y - element.height * element.x) /
+                  lineLength
+                )
+                return distance < 5
               }
-              const distance = Math.sqrt(
-                Math.pow(clickVector.x - projection.x, 2) +
-                Math.pow(clickVector.y - projection.y, 2)
-              )
 
-              if (distance < 10 && dotProduct >= 0 && dotProduct <= lineLength) {
+              if (isNearLine(x, y)) {
+                setIsDragging(true)
+                setDragOffset({
+                  x: x - element.x,
+                  y: y - element.y
+                })
+                return true
+              }
+            }
+            return false
+
+          case "triangle":
+            if (element.x !== undefined && element.y !== undefined &&
+              element.width !== undefined && element.height !== undefined) {
+              // Check if click is on resize handle
+              const handleSize = 8
+              const isOnResizeHandle =
+                (x >= element.x + element.width / 2 - handleSize && x <= element.x + element.width / 2 + handleSize &&
+                  y >= element.y - handleSize && y <= element.y + handleSize) ? 'ne' :
+                  (x >= element.x + element.width - handleSize && x <= element.x + element.width + handleSize &&
+                    y >= element.y + element.height - handleSize && y <= element.y + element.height + handleSize) ? 'se' :
+                    (x >= element.x - handleSize && x <= element.x + handleSize &&
+                      y >= element.y + element.height - handleSize && y <= element.y + element.height + handleSize) ? 'sw' : null
+
+              if (isOnResizeHandle) {
+                setIsResizing(true)
+                setResizeDirection(isOnResizeHandle)
+                setOriginalSize({
+                  width: element.width,
+                  height: element.height,
+                  x: element.x,
+                  y: element.y
+                })
+                setResizeStartPoint({ x, y })
+                return true
+              }
+
+              // Check if click is inside the triangle
+              const isInsideTriangle = (px: number, py: number) => {
+                const x1 = element.x + element.width / 2
+                const y1 = element.y
+                const x2 = element.x + element.width
+                const y2 = element.y + element.height
+                const x3 = element.x
+                const y3 = element.y + element.height
+
+                const area = Math.abs((x2 - x1) * (y3 - y1) - (x3 - x1) * (y2 - y1)) / 2
+                const area1 = Math.abs((x1 - px) * (y2 - py) - (x2 - px) * (y1 - py)) / 2
+                const area2 = Math.abs((x2 - px) * (y3 - py) - (x3 - px) * (y2 - py)) / 2
+                const area3 = Math.abs((x3 - px) * (y1 - py) - (x1 - px) * (y3 - py)) / 2
+
+                return Math.abs(area - (area1 + area2 + area3)) < 0.1
+              }
+
+              if (isInsideTriangle(x, y)) {
                 setIsDragging(true)
                 setDragOffset({
                   x: x - element.x,
@@ -1255,6 +1328,23 @@ export function Brainboard({ boardId }: BrainboardProps) {
           newWidth = originalSize.width - dx
           newHeight = originalSize.height - dy
           newX = originalSize.x + dx
+          newY = originalSize.y + dy
+        }
+      } else if (element.type === 'triangle') {
+        // For triangles, handle each corner point
+        if (resizeDirection === 'se') {
+          // Bottom right point
+          newWidth = originalSize.width + dx
+          newHeight = originalSize.height + dy
+        } else if (resizeDirection === 'sw') {
+          // Bottom left point
+          newWidth = originalSize.width - dx
+          newHeight = originalSize.height + dy
+          newX = originalSize.x + dx
+        } else if (resizeDirection === 'ne') {
+          // Top point
+          newWidth = originalSize.width + dx
+          newHeight = originalSize.height - dy
           newY = originalSize.y + dy
         }
       } else {
@@ -1584,6 +1674,30 @@ export function Brainboard({ boardId }: BrainboardProps) {
             context.lineTo(updatedElement.x, updatedElement.y + updatedElement.height)
             context.closePath()
             context.stroke()
+
+            // Draw selection indicator if this element is selected
+            if (selectedElement && selectedElement.id === element.id) {
+              context.strokeStyle = "#3b82f6"
+              context.lineWidth = 1
+
+              // Draw selection rectangle
+              context.strokeRect(
+                element.x - 2,
+                element.y - 2,
+                element.width + 4,
+                element.height + 4
+              )
+
+              // Draw resize handles
+              const handleSize = 8
+              context.fillStyle = "#3b82f6"
+              // Top point handle
+              context.fillRect(element.x + element.width / 2 - handleSize / 2, element.y - handleSize / 2, handleSize, handleSize)
+              // Bottom right point handle
+              context.fillRect(element.x + element.width - handleSize / 2, element.y + element.height - handleSize / 2, handleSize, handleSize)
+              // Bottom left point handle
+              context.fillRect(element.x - handleSize / 2, element.y + element.height - handleSize / 2, handleSize, handleSize)
+            }
           }
           break
 
