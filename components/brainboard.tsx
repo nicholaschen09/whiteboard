@@ -994,13 +994,10 @@ export function Brainboard({ boardId }: BrainboardProps) {
         break
 
       case "rectangle":
-        newElement.x = x
-        newElement.y = y
-        newElement.width = 0
-        newElement.height = 0
-        break
-
       case "circle":
+      case "triangle":
+      case "star":
+      case "line":
         newElement.x = x
         newElement.y = y
         newElement.width = 0
