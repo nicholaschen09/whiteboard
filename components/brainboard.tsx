@@ -2607,7 +2607,10 @@ export function Brainboard({ boardId }: BrainboardProps) {
                   <Button
                     variant="ghost"
                     size="sm"
-                    onClick={() => setCurrentTool("arrow")}
+                    onClick={() => {
+                      setPendingTool("arrow")
+                      setShowColorPicker(true)
+                    }}
                     className={cn("rounded-md", currentTool === "arrow" && "bg-slate-200 hover:bg-slate-300")}
                   >
                     <svg
