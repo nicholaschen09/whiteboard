@@ -103,7 +103,14 @@ export function ColorPicker({ color, onChange }: ColorPickerProps) {
           <Palette className="h-4 w-4 text-slate-950" />
         </Button>
       </PopoverTrigger>
-      <PopoverContent className="w-40 px-2 py-4">
+      <PopoverContent
+        className="w-40 px-2 py-4"
+        align="start"
+        side="top"
+        sideOffset={-50}
+        alignOffset={-100}
+        style={{ position: 'absolute', top: '-200px', left: '-175px' }}
+      >
         <div className="space-y-4">
           <h4 className="text-sm font-medium">Colors</h4>
           <div className="grid grid-cols-5 gap-1">

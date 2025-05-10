@@ -2500,6 +2500,9 @@ export function Brainboard({ boardId }: BrainboardProps) {
 
   const [ws, setWs] = useState<ReturnType<typeof createWebSocket> | null>(null)
 
+  const [showColorPicker, setShowColorPicker] = useState(false)
+  const [pendingTool, setPendingTool] = useState<Tool | null>(null)
+
   return (
     <div className="flex flex-col h-[95vh] border rounded-lg overflow-hidden bg-slate-50 shadow-lg">
       <div className="flex items-center justify-between p-2 border-b bg-slate-50">
@@ -2566,7 +2569,10 @@ export function Brainboard({ boardId }: BrainboardProps) {
                   <Button
                     variant="ghost"
                     size="sm"
-                    onClick={() => setCurrentTool("rectangle")}
+                    onClick={() => {
+                      setPendingTool("rectangle")
+                      setShowColorPicker(true)
+                    }}
                     className={cn("rounded-md", currentTool === "rectangle" && "bg-slate-200 hover:bg-slate-300")}
                   >
                     <Square className="h-4 w-4" />
@@ -2582,7 +2588,10 @@ export function Brainboard({ boardId }: BrainboardProps) {
                   <Button
                     variant="ghost"
                     size="sm"
-                    onClick={() => setCurrentTool("circle")}
+                    onClick={() => {
+                      setPendingTool("circle")
+                      setShowColorPicker(true)
+                    }}
                     className={cn("rounded-md", currentTool === "circle" && "bg-slate-200 hover:bg-slate-300")}
                   >
                     <Circle className="h-4 w-4" />
@@ -3100,6 +3109,49 @@ export function Brainboard({ boardId }: BrainboardProps) {
             </div>
             <div className="flex justify-end">
               <Button onClick={() => setShowPenSettings(false)}>Done</Button>
+            </div>
+          </DialogContent>
+        </Dialog>
+      )}
+      {showColorPicker && (
+        <Dialog open={showColorPicker} onOpenChange={setShowColorPicker}>
+          <DialogContent className="sm:max-w-[425px] fixed top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2">
+            <DialogHeader>
+              <DialogTitle>Choose Color for {pendingTool === 'circle' ? 'Circle' : 'Rectangle'}</DialogTitle>
+              <p className="text-sm text-muted-foreground">Select a color before creating your shape</p>
+            </DialogHeader>
+            <div className="grid gap-4 py-4">
+              <div className="flex flex-col space-y-3">
+                <label className="text-sm font-medium">Selected Color</label>
+                <div className="flex flex-col gap-2">
+                  <div
+                    className="w-10 h-10 rounded-md border"
+                    style={{ backgroundColor: currentColor }}
+                  />
+                  <div className="overflow-y-auto mt-4" style={{ maxHeight: "200px" }}>
+                    <div className="relative left-0 bottom-0">
+                      <ColorPicker color={currentColor} onChange={setCurrentColor} />
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+            <div className="flex justify-end gap-2 mt-2">
+              <Button variant="outline" onClick={() => {
+                setPendingTool(null)
+                setShowColorPicker(false)
+              }}>
+                Cancel
+              </Button>
+              <Button onClick={() => {
+                if (pendingTool) {
+                  setCurrentTool(pendingTool)
+                  setPendingTool(null)
+                }
+                setShowColorPicker(false)
+              }}>
+                Confirm Color
+              </Button>
             </div>
           </DialogContent>
         </Dialog>

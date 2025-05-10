@@ -26,6 +26,7 @@ type DrawingElement = {
   text?: string
   color: string
   userId: number
+  selected?: boolean
 }
 
 export function Whiteboard() {
@@ -40,6 +41,9 @@ export function Whiteboard() {
   const [currentElement, setCurrentElement] = useState<DrawingElement | null>(null)
   const [users, setUsers] = useState(initialUsers)
   const [showUsers, setShowUsers] = useState(false)
+  const [selectedElement, setSelectedElement] = useState<DrawingElement | null>(null)
+  const [showColorPicker, setShowColorPicker] = useState(false)
+  const [pendingTool, setPendingTool] = useState<Tool | null>(null)
 
   // Initialize canvas context
   useEffect(() => {
@@ -130,15 +134,50 @@ export function Whiteboard() {
           ) {
             context.beginPath()
             context.rect(element.x, element.y, element.width, element.height)
+            context.fill()
             context.stroke()
+
+            // Draw selection indicator
+            if (element === selectedElement) {
+              context.strokeStyle = "#3b82f6"
+              context.lineWidth = 2
+              context.strokeRect(
+                element.x - 2,
+                element.y - 2,
+                element.width + 4,
+                element.height + 4
+              )
+            }
           }
           break
 
         case "circle":
           if (element.x !== undefined && element.y !== undefined && element.width !== undefined) {
             context.beginPath()
-            context.arc(element.x + element.width / 2, element.y + element.width / 2, element.width / 2, 0, Math.PI * 2)
+            context.arc(
+              element.x + element.width / 2,
+              element.y + element.width / 2,
+              element.width / 2,
+              0,
+              Math.PI * 2
+            )
+            context.fill()
             context.stroke()
+
+            // Draw selection indicator
+            if (element === selectedElement) {
+              context.strokeStyle = "#3b82f6"
+              context.lineWidth = 2
+              context.beginPath()
+              context.arc(
+                element.x + element.width / 2,
+                element.y + element.width / 2,
+                element.width / 2 + 2,
+                0,
+                Math.PI * 2
+              )
+              context.stroke()
+            }
           }
           break
 
@@ -160,16 +199,23 @@ export function Whiteboard() {
     const x = e.clientX - rect.left
     const y = e.clientY - rect.top
 
-    setIsDrawing(true)
-
     // Update current user position
     setUsers((prevUsers) => prevUsers.map((user) => (user.id === 1 ? { ...user, x, y } : user)))
+
+    if (currentTool === "select" as Tool) {
+      // Find clicked element
+      const clickedElement = elements.find(element => isPointInShape(x, y, element))
+      setSelectedElement(clickedElement || null)
+      return
+    }
+
+    setIsDrawing(true)
 
     const newElement: DrawingElement = {
       id: Date.now().toString(),
       type: currentTool,
       color: currentColor,
-      userId: 1, // Current user
+      userId: 1,
     }
 
     switch (currentTool) {
@@ -337,6 +383,43 @@ export function Whiteboard() {
     link.click()
   }
 
+  // Add function to check if a point is inside a shape
+  const isPointInShape = (x: number, y: number, element: DrawingElement) => {
+    switch (element.type) {
+      case "rectangle":
+        if (element.x !== undefined && element.y !== undefined &&
+          element.width !== undefined && element.height !== undefined) {
+          return x >= element.x && x <= element.x + element.width &&
+            y >= element.y && y <= element.y + element.height
+        }
+        return false
+
+      case "circle":
+        if (element.x !== undefined && element.y !== undefined && element.width !== undefined) {
+          const centerX = element.x + element.width / 2
+          const centerY = element.y + element.width / 2
+          const radius = element.width / 2
+          const dx = x - centerX
+          const dy = y - centerY
+          return Math.sqrt(dx * dx + dy * dy) <= radius
+        }
+        return false
+
+      default:
+        return false
+    }
+  }
+
+  // Add function to update color of selected element
+  const updateSelectedColor = (newColor: string) => {
+    if (selectedElement) {
+      const updatedElements = elements.map(element =>
+        element === selectedElement ? { ...element, color: newColor } : element
+      )
+      setElements(updatedElements)
+    }
+  }
+
   return (
     <div className="flex flex-col h-[80vh] border rounded-lg overflow-hidden bg-white">
       <div className="flex items-center justify-between p-2 border-b">
@@ -345,7 +428,7 @@ export function Whiteboard() {
             <Tooltip>
               <TooltipTrigger asChild>
                 <Button
-                  variant={currentTool === "select" ? "default" : "ghost"}
+                  variant={currentTool === "select" ? "secondary" : "ghost"}
                   size="icon"
                   onClick={() => setCurrentTool("select")}
                 >
@@ -360,7 +443,7 @@ export function Whiteboard() {
             <Tooltip>
               <TooltipTrigger asChild>
                 <Button
-                  variant={currentTool === "pen" ? "default" : "ghost"}
+                  variant={currentTool === "pen" ? "secondary" : "ghost"}
                   size="icon"
                   onClick={() => setCurrentTool("pen")}
                 >
@@ -375,7 +458,7 @@ export function Whiteboard() {
             <Tooltip>
               <TooltipTrigger asChild>
                 <Button
-                  variant={currentTool === "rectangle" ? "default" : "ghost"}
+                  variant={currentTool === "rectangle" ? "secondary" : "ghost"}
                   size="icon"
                   onClick={() => setCurrentTool("rectangle")}
                 >
@@ -390,7 +473,7 @@ export function Whiteboard() {
             <Tooltip>
               <TooltipTrigger asChild>
                 <Button
-                  variant={currentTool === "circle" ? "default" : "ghost"}
+                  variant={currentTool === "circle" ? "secondary" : "ghost"}
                   size="icon"
                   onClick={() => setCurrentTool("circle")}
                 >
@@ -405,7 +488,7 @@ export function Whiteboard() {
             <Tooltip>
               <TooltipTrigger asChild>
                 <Button
-                  variant={currentTool === "text" ? "default" : "ghost"}
+                  variant={currentTool === "text" ? "secondary" : "ghost"}
                   size="icon"
                   onClick={() => setCurrentTool("text")}
                 >
@@ -416,7 +499,16 @@ export function Whiteboard() {
             </Tooltip>
           </TooltipProvider>
 
-          <ColorPicker color={currentColor} onChange={setCurrentColor} />
+          <ColorPicker
+            color={selectedElement ? selectedElement.color : currentColor}
+            onChange={(color) => {
+              if (selectedElement) {
+                updateSelectedColor(color)
+              } else {
+                setCurrentColor(color)
+              }
+            }}
+          />
         </div>
 
         <div className="flex items-center space-x-1">
