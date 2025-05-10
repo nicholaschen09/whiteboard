@@ -779,6 +779,35 @@ export function Brainboard({ boardId }: BrainboardProps) {
                 context.moveTo(element.x, element.y)
                 context.lineTo(element.x + element.width, element.y + element.height)
                 context.stroke()
+
+                // Draw selection indicator if this element is selected
+                if (selectedElement && selectedElement.id === element.id) {
+                  context.strokeStyle = "#3b82f6"
+                  context.lineWidth = 1
+
+                  // Draw selection rectangle
+                  const bounds = {
+                    minX: Math.min(element.x, element.x + element.width),
+                    minY: Math.min(element.y, element.y + element.height),
+                    maxX: Math.max(element.x, element.x + element.width),
+                    maxY: Math.max(element.y, element.y + element.height)
+                  }
+
+                  context.strokeRect(
+                    bounds.minX - 2,
+                    bounds.minY - 2,
+                    bounds.maxX - bounds.minX + 4,
+                    bounds.maxY - bounds.minY + 4
+                  )
+
+                  // Draw resize handles
+                  const handleSize = 8
+                  context.fillStyle = "#3b82f6"
+                  // Start point handle
+                  context.fillRect(element.x - handleSize / 2, element.y - handleSize / 2, handleSize, handleSize)
+                  // End point handle
+                  context.fillRect(element.x + element.width - handleSize / 2, element.y + element.height - handleSize / 2, handleSize, handleSize)
+                }
               }
               break
           }
@@ -957,6 +986,59 @@ export function Brainboard({ boardId }: BrainboardProps) {
                 const dy = y - point.y
                 return Math.sqrt(dx * dx + dy * dy) < 10 // 10px click radius
               })
+            }
+            return false
+
+          case "line":
+            if (element.x !== undefined && element.y !== undefined &&
+              element.width !== undefined && element.height !== undefined) {
+              // Check if click is on resize handle
+              const handleSize = 8
+              const isOnResizeHandle =
+                (x >= element.x + element.width - handleSize && x <= element.x + element.width + handleSize &&
+                  y >= element.y + element.height - handleSize && y <= element.y + element.height + handleSize) ? 'se' :
+                  (x >= element.x - handleSize && x <= element.x + handleSize &&
+                    y >= element.y - handleSize && y <= element.y + handleSize) ? 'nw' :
+                    (x >= element.x + element.width - handleSize && x <= element.x + element.width + handleSize &&
+                      y >= element.y - handleSize && y <= element.y + handleSize) ? 'ne' :
+                      (x >= element.x - handleSize && x <= element.x + handleSize &&
+                        y >= element.y + element.height - handleSize && y <= element.y + element.height + handleSize) ? 'sw' : null
+
+              if (isOnResizeHandle) {
+                setIsResizing(true)
+                setResizeDirection(isOnResizeHandle)
+                setOriginalSize({
+                  width: element.width,
+                  height: element.height,
+                  x: element.x,
+                  y: element.y
+                })
+                setResizeStartPoint({ x, y })
+                return true
+              }
+
+              // Check if click is near the line
+              const lineLength = Math.sqrt(element.width * element.width + element.height * element.height)
+              const lineVector = { x: element.width / lineLength, y: element.height / lineLength }
+              const clickVector = { x: x - element.x, y: y - element.y }
+              const dotProduct = clickVector.x * lineVector.x + clickVector.y * lineVector.y
+              const projection = {
+                x: dotProduct * lineVector.x,
+                y: dotProduct * lineVector.y
+              }
+              const distance = Math.sqrt(
+                Math.pow(clickVector.x - projection.x, 2) +
+                Math.pow(clickVector.y - projection.y, 2)
+              )
+
+              if (distance < 10 && dotProduct >= 0 && dotProduct <= lineLength) {
+                setIsDragging(true)
+                setDragOffset({
+                  x: x - element.x,
+                  y: y - element.y
+                })
+                return true
+              }
             }
             return false
 
@@ -1164,95 +1246,69 @@ export function Brainboard({ boardId }: BrainboardProps) {
       const dx = x - resizeStartPoint.x
       const dy = y - resizeStartPoint.y
 
-      // Calculate scale factors based on resize direction
-      let scaleX = 1
-      let scaleY = 1
-
-      switch (resizeDirection) {
-        case 'se':
-          scaleX = (originalSize.width + dx) / originalSize.width
-          scaleY = (originalSize.height + dy) / originalSize.height
-          break
-        case 'sw':
-          scaleX = (originalSize.width - dx) / originalSize.width
-          scaleY = (originalSize.height + dy) / originalSize.height
-          newX = originalSize.x + dx
-          break
-        case 'ne':
-          scaleX = (originalSize.width + dx) / originalSize.width
-          scaleY = (originalSize.height - dy) / originalSize.height
-          newY = originalSize.y + dy
-          break
-        case 'nw':
-          scaleX = (originalSize.width - dx) / originalSize.width
-          scaleY = (originalSize.height - dy) / originalSize.height
+      if (element.type === 'line') {
+        // For lines, we only need to update the end point
+        if (resizeDirection === 'se') {
+          newWidth = originalSize.width + dx
+          newHeight = originalSize.height + dy
+        } else if (resizeDirection === 'nw') {
+          newWidth = originalSize.width - dx
+          newHeight = originalSize.height - dy
           newX = originalSize.x + dx
           newY = originalSize.y + dy
-          break
-      }
-
-      // Ensure minimum size
-      const minSize = 20
-      if (scaleX * originalSize.width < minSize) {
-        scaleX = minSize / originalSize.width
-        if (resizeDirection === 'sw' || resizeDirection === 'nw') {
-          newX = originalSize.x + originalSize.width - minSize
         }
-      }
-      if (scaleY * originalSize.height < minSize) {
-        scaleY = minSize / originalSize.height
-        if (resizeDirection === 'ne' || resizeDirection === 'nw') {
-          newY = originalSize.y + originalSize.height - minSize
-        }
-      }
-
-      if (element.type === 'text') {
-        // For text elements, scale the font size
-        const newFontSize = Math.max(8, Math.round((element.fontSize || 16) * scaleY))
-        const updatedElement = {
-          ...element,
-          x: newX,
-          y: newY,
-          fontSize: newFontSize
-        }
-
-        // Update the elements array
-        setElements(prevElements =>
-          prevElements.map(el =>
-            el.id === selectedElement.id ? updatedElement : el
-          )
-        )
-
-        // Update the layers
-        setLayers(prevLayers =>
-          prevLayers.map(layer =>
-            layer.id === activeLayer
-              ? {
-                ...layer,
-                elements: layer.elements.map(el =>
-                  el.id === selectedElement.id ? updatedElement : el
-                )
-              }
-              : layer
-          )
-        )
-
-        // Force a redraw
-        if (context) {
-          drawElements()
-        }
-        return
-      }
-
-      // Handle other element types
-      if (element.type === 'circle') {
-        // For circles, maintain aspect ratio
-        const scale = Math.max(scaleX, scaleY)
-        newWidth = Math.max(minSize, originalSize.width * scale)
-        newHeight = newWidth // Keep it circular
       } else {
-        newWidth = Math.max(minSize, originalSize.width * scaleX)
-        newHeight = Math.max(minSize, originalSize.height * scaleY)
+        // Calculate scale factors based on resize direction
+        let scaleX = 1
+        let scaleY = 1
+
+        switch (resizeDirection) {
+          case 'se':
+            scaleX = (originalSize.width + dx) / originalSize.width
+            scaleY = (originalSize.height + dy) / originalSize.height
+            break
+          case 'sw':
+            scaleX = (originalSize.width - dx) / originalSize.width
+            scaleY = (originalSize.height + dy) / originalSize.height
+            newX = originalSize.x + dx
+            break
+          case 'ne':
+            scaleX = (originalSize.width + dx) / originalSize.width
+            scaleY = (originalSize.height - dy) / originalSize.height
+            newY = originalSize.y + dy
+            break
+          case 'nw':
+            scaleX = (originalSize.width - dx) / originalSize.width
+            scaleY = (originalSize.height - dy) / originalSize.height
+            newX = originalSize.x + dx
+            newY = originalSize.y + dy
+            break
+        }
+
+        // Ensure minimum size
+        const minSize = 20
+        if (scaleX * originalSize.width < minSize) {
+          scaleX = minSize / originalSize.width
+          if (resizeDirection === 'sw' || resizeDirection === 'nw') {
+            newX = originalSize.x + originalSize.width - minSize
+          }
+        }
+        if (scaleY * originalSize.height < minSize) {
+          scaleY = minSize / originalSize.height
+          if (resizeDirection === 'ne' || resizeDirection === 'nw') {
+            newY = originalSize.y + originalSize.height - minSize
+          }
+        }
+
+        if (element.type === 'circle') {
+          // For circles, maintain aspect ratio
+          const scale = Math.max(scaleX, scaleY)
+          newWidth = Math.max(minSize, originalSize.width * scale)
+          newHeight = newWidth // Keep it circular
+        } else {
+          newWidth = Math.max(minSize, originalSize.width * scaleX)
+          newHeight = Math.max(minSize, originalSize.height * scaleY)
+        }
       }
 
       // Update the element's position and size
