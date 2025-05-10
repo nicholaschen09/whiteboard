@@ -48,7 +48,6 @@ import {
 } from "@/components/ui/dialog"
 import { HelpDialog } from "./help-dialog"
 import { Input } from "@/components/ui/input"
-import { AIChat } from "./ai-chat"
 import { createWebSocket } from "@/lib/websocket"
 import { helpContent } from "@/lib/help-content"
 
@@ -2458,9 +2457,6 @@ export function Brainboard({ boardId }: BrainboardProps) {
     }
   }, []) // Empty dependency array means this runs once on mount
 
-  const [showAIChat, setShowAIChat] = useState(false)
-
-  // Add back the note editing states
   const [showNoteInput, setShowNoteInput] = useState(false)
   const [noteInputValue, setNoteInputValue] = useState("")
   const [notePosition, setNotePosition] = useState({ x: 0, y: 0 })
@@ -2872,22 +2868,6 @@ export function Brainboard({ boardId }: BrainboardProps) {
                   <Button
                     variant="ghost"
                     size="sm"
-                    onClick={() => setShowAIChat(true)}
-                    className="rounded-md"
-                  >
-                    <Sparkles className="h-4 w-4" />
-                  </Button>
-                </TooltipTrigger>
-                <TooltipContent>AI Assistant</TooltipContent>
-              </Tooltip>
-            </TooltipProvider>
-
-            <TooltipProvider>
-              <Tooltip>
-                <TooltipTrigger asChild>
-                  <Button
-                    variant="ghost"
-                    size="sm"
                     onClick={handleSave}
                     className="rounded-md"
                   >
@@ -3029,7 +3009,6 @@ export function Brainboard({ boardId }: BrainboardProps) {
           </DialogContent>
         </Dialog>
       )}
-      {showAIChat && <AIChat onClose={() => setShowAIChat(false)} />}
       {showNoteInput && (
         <Dialog open={showNoteInput} onOpenChange={setShowNoteInput}>
           <DialogContent className="sm:max-w-[425px]">
