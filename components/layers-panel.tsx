@@ -2,8 +2,6 @@
 
 import { Button } from "@/components/ui/button"
 import { Card } from "@/components/ui/card"
-import { Label } from "@/components/ui/label"
-import { Switch } from "@/components/ui/switch"
 import { X, Eye, EyeOff, ArrowUp, ArrowDown, Trash2, Lock, LockOpen } from "lucide-react"
 import { cn } from "@/lib/utils"
 
