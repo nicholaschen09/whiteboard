@@ -1086,10 +1086,10 @@ export function Brainboard({ boardId }: BrainboardProps) {
       setTextColor(clickedText.color)
       setShowTextInput(true)
     } else if (clickedNote) {
-      setSelectedElement(clickedNote)
-      setShowNoteInput(true)
+      setEditingNote(clickedNote)
       setNoteInputValue(clickedNote.text || "")
-      setNotePosition({ x: clickedNote.x || 0, y: clickedNote.y || 0 })
+      setNoteColor(clickedNote.color)
+      setShowNoteInput(true)
     }
   }
 
@@ -2461,34 +2461,65 @@ export function Brainboard({ boardId }: BrainboardProps) {
   const [noteInputValue, setNoteInputValue] = useState("")
   const [notePosition, setNotePosition] = useState({ x: 0, y: 0 })
   const [noteColor, setNoteColor] = useState("#FFEB3B") // Default yellow color
+  const [editingNote, setEditingNote] = useState<DrawingElement | null>(null)
 
-  // Update createNote function to use selected color
+  // Update createNote function to handle both new and existing notes
   const createNote = () => {
     if (!canvasRef.current || !noteInputValue.trim()) return
 
     const canvas = canvasRef.current
     const rect = canvas.getBoundingClientRect()
 
-    // Calculate center position
-    const x = (rect.width / 2) - 100 // Half of note width
-    const y = (rect.height / 2) - 75 // Half of note height
+    if (editingNote) {
+      // Update existing note
+      const updatedElement = {
+        ...editingNote,
+        color: noteColor,
+        text: noteInputValue
+      }
 
-    const newElement: DrawingElement = {
-      id: Date.now().toString(),
-      type: "note",
-      x,
-      y,
-      width: 200,
-      height: 150,
-      color: noteColor, // Use the selected color
-      text: noteInputValue,
-      userId: 1,
-      lineWidth: 2
+      setElements(prevElements =>
+        prevElements.map(el =>
+          el.id === editingNote.id ? updatedElement : el
+        )
+      )
+
+      setLayers(prevLayers =>
+        prevLayers.map(layer =>
+          layer.id === activeLayer
+            ? {
+              ...layer,
+              elements: layer.elements.map(el =>
+                el.id === editingNote.id ? updatedElement : el
+              )
+            }
+            : layer
+        )
+      )
+    } else {
+      // Create new note
+      const x = (rect.width / 2) - 100 // Half of note width
+      const y = (rect.height / 2) - 75 // Half of note height
+
+      const newElement: DrawingElement = {
+        id: Date.now().toString(),
+        type: "note",
+        x,
+        y,
+        width: 200,
+        height: 150,
+        color: noteColor,
+        text: noteInputValue,
+        userId: 1,
+        lineWidth: 2
+      }
+
+      addElement(newElement)
     }
 
-    addElement(newElement)
     setNoteInputValue("")
     setShowNoteInput(false)
+    setEditingNote(null)
     setCurrentTool("select")
   }
 
@@ -3010,10 +3041,17 @@ export function Brainboard({ boardId }: BrainboardProps) {
         </Dialog>
       )}
       {showNoteInput && (
-        <Dialog open={showNoteInput} onOpenChange={setShowNoteInput}>
+        <Dialog open={showNoteInput} onOpenChange={(open) => {
+          setShowNoteInput(open)
+          if (!open) {
+            setEditingNote(null)
+            setNoteInputValue("")
+            setNoteColor("#FFEB3B")
+          }
+        }}>
           <DialogContent className="sm:max-w-[425px]">
             <DialogHeader>
-              <DialogTitle>Add Sticky Note</DialogTitle>
+              <DialogTitle>{editingNote ? "Edit Sticky Note" : "Add Sticky Note"}</DialogTitle>
             </DialogHeader>
             <div className="grid gap-4 py-4">
               <div className="space-y-2">
@@ -3038,12 +3076,15 @@ export function Brainboard({ boardId }: BrainboardProps) {
               <div className="flex justify-end gap-2">
                 <Button variant="outline" onClick={() => {
                   setShowNoteInput(false)
+                  setEditingNote(null)
+                  setNoteInputValue("")
+                  setNoteColor("#FFEB3B")
                   setCurrentTool("select")
                 }}>
                   Cancel
                 </Button>
                 <Button onClick={createNote}>
-                  Done
+                  {editingNote ? "Update" : "Add Note"}
                 </Button>
               </div>
             </div>
