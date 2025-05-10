@@ -55,7 +55,6 @@ type Tool =
   | "rectangle"
   | "circle"
   | "triangle"
-  | "star"
   | "line"
   | "text"
   | "sticker"
@@ -2778,37 +2777,6 @@ export function Brainboard({ boardId }: BrainboardProps) {
                   </Button>
                 </TooltipTrigger>
                 <TooltipContent>Triangle</TooltipContent>
-              </Tooltip>
-            </TooltipProvider>
-
-            <TooltipProvider>
-              <Tooltip>
-                <TooltipTrigger asChild>
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    onClick={() => {
-                      setPendingTool("star")
-                      setShowColorPicker(true)
-                    }}
-                    className={cn("rounded-md", currentTool === "star" && "bg-slate-200 hover:bg-slate-300")}
-                  >
-                    <svg
-                      width="16"
-                      height="16"
-                      viewBox="0 0 24 24"
-                      fill="none"
-                      stroke="currentColor"
-                      strokeWidth="2"
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      className="h-4 w-4"
-                    >
-                      <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2" />
-                    </svg>
-                  </Button>
-                </TooltipTrigger>
-                <TooltipContent>Star</TooltipContent>
               </Tooltip>
             </TooltipProvider>
 
