@@ -1,4 +1,5 @@
 # whiteboard
+<img width="1309" alt="Screenshot 2025-05-28 at 1 11 30 AM" src="https://github.com/user-attachments/assets/e374309d-1c03-4754-a631-f52972294e15" />
 
 Whiteboard is a collaborative whiteboard application that enables real-time brainstorming and ideation for teams. It provides a digital canvas where multiple users can draw, add text, share images, and collaborate simultaneously.
 
